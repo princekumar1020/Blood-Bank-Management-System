@@ -36,7 +36,7 @@ node server.js
 Open a **new** terminal window, navigate to the root project folder, and execute:
 
 \`\`\`bash
-cd frontend
+cd frontend 
 npm install
 npm run dev
 \`\`\`
