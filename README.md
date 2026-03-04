@@ -1,6 +1,6 @@
 # Blood Bank Management System
 
-This is the central repository for the MERN stack Blood Bank Management project.
+Full stack class project. This is the central repository for the MERN stack Blood Bank Management project.
 
 ## Installed Packages
 
