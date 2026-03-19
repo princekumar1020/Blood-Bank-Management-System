@@ -1,14 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import Dashboard from "./pages/Dashboard.jsx";
+import Donations from "./pages/Donations.jsx";
 
 function App() {
   return (
-    <div>
-      <h1>Blood Bank Management System - Admin Dashboard</h1>
-    </div>
-  )
+    <BrowserRouter>
+      <nav>
+        <Link to="/">Dashboard</Link> | 
+        <Link to="/donations">Donations</Link>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/donations" element={<Donations />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

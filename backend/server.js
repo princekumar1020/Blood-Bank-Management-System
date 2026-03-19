@@ -1,26 +1,31 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
 
-// Load environment variables (we will create a .env file later)
+import donationRoutes from "./routes/donationRoutes.js";
+
 dotenv.config();
 
-// Initialize the Express application
 const app = express();
 
-// Middleware to parse JSON data and allow cross-origin requests
 app.use(express.json());
 app.use(cors());
 
-// Define the port (defaults to 5000 if not specified in .env)
-const PORT = process.env.PORT || 5000;
+console.log("MONGO URI:", process.env.MONGO_URI);
 
-// A basic test route
-app.get('/', (req, res) => {
-    res.send('Blood Bank Backend is running!');
+app.use("/api/donations", donationRoutes);
+
+app.get("/", (req, res) => {
+  res.send("Server working");
 });
 
-// Start the server
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ DB Connected"))
+  .catch(err => console.log("❌ DB Error:", err.message));
+
+const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-    console.log(`Server is successfully running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
