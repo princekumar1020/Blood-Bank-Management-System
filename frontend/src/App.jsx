@@ -1,14 +1,13 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import RecipientDashboard from './components/RecipientDashboard'; 
 
-function App() {
+const App = () => {
   return (
-    <div>
-      <h1>Blood Bank Management System - Admin Dashboard</h1>
+    <div className="bg-gray-100 min-h-screen">
+      {/* Ab seedha naya Mobile Dashboard screen par aayega */}
+      <RecipientDashboard />
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;

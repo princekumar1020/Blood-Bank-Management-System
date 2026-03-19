@@ -1,26 +1,27 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import requestRoutes from './routes/requestRoutes.js';
 
-// Load environment variables (we will create a .env file later)
-dotenv.config();
-
-// Initialize the Express application
 const app = express();
 
-// Middleware to parse JSON data and allow cross-origin requests
+// --- 1. MIDDLEWARE ---
+app.use(cors()); 
 app.use(express.json());
-app.use(cors());
 
-// Define the port (defaults to 5000 if not specified in .env)
-const PORT = process.env.PORT || 5000;
+// --- 2. DATABASE CONNECTION (Prince's DB) ---
+// Note: # ko %23 likha hai connection string stable rakhne ke liye
+const MONGO_URI = "mongodb+srv://princekumar92430_db_user:Mongo%232498@building-database.efe2ro1.mongodb.net/bloodbank?retryWrites=true&w=majority";
 
-// A basic test route
-app.get('/', (req, res) => {
-    res.send('Blood Bank Backend is running!');
-});
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ Prince's MongoDB Connected Successfully! 🎉"))
+    .catch((err) => console.error("❌ Connection Failed:", err.message));
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is successfully running on port ${PORT}`);
+// --- 3. ROUTES ---
+app.use('/api/requests', requestRoutes);
+
+// --- 4. SERVER START ---
+const PORT = 5000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on http://127.0.0.1:${PORT}`);
 });
