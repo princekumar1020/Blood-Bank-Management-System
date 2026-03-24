@@ -9,6 +9,7 @@ Full stack class project. This is the central repository for the MERN stack Bloo
 * **mongoose**: The Object Data Modeling (ODM) library used to connect to and interact with MongoDB.
 * **cors**: Middleware that allows our React frontend to securely make API requests to this backend.
 * **dotenv**: Loads secure environment variables (like database URIs and port numbers) from a `.env` file.
+* **bcryptjs**: A library to help you hash passwords.
 
 ### Frontend Dependencies (`/frontend`)
 * **react** / **react-dom**: The core libraries for building the user interface.

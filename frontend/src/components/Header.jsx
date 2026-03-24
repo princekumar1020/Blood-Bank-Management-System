@@ -1,31 +1,38 @@
-import React from 'react'
+import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-export default function Header({ currentPage, onNavigate }) {
-  const isLoggedIn = currentPage === 'dashboard'
+export default function Header() {
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <header className="app-header">
       <div className="header-inner">
-        <div className="brand" onClick={() => onNavigate('home')} role="button" tabIndex={0}>
+        <Link to="/" className="brand" role="button" tabIndex={0}>
           <span className="brand-dot" /> LifeShare Blood Bank
-        </div>
-
+        </Link>
         <nav className="nav">
-          {isLoggedIn ? (
-            <button className="nav-button" onClick={() => onNavigate('home')} type="button">
-              Log out
-            </button>
+          {isAuthenticated ? (
+            <>
+              <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'nav-button active' : 'nav-button')}>
+                Dashboard
+              </NavLink>
+              <Link to="/auth" onClick={logout} className="nav-button">
+                Logout
+              </Link>
+            </>
           ) : (
-            <button
-              className={currentPage === 'auth' ? 'nav-button active' : 'nav-button'}
-              onClick={() => onNavigate('auth')}
-              type="button"
-            >
-              Login / Sign Up
-            </button>
+            <>
+              <NavLink to="/" className={({ isActive }) => (isActive ? 'nav-button active' : 'nav-button')}>
+                Home
+              </NavLink>
+              <NavLink to="/auth" className={({ isActive }) => (isActive ? 'nav-button active' : 'nav-button')}>
+                Login / Sign Up
+              </NavLink>
+            </>
           )}
         </nav>
       </div>
     </header>
-  )
+  );
 }

@@ -1,28 +1,38 @@
-import { useState } from 'react'
-import './App.css'
-import Header from './components/Header'
-import HomePage from './pages/HomePage'
-import HomePage from './pages/HomePage'
-import AuthPage from './pages/AuthPage'
-import DashboardPage from './pages/DashboardPage'
-import Footer from './components/Footer'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 
-function App() {
-  const [page, setPage] = useState('home')
+import Header from './components/Header';
+import Footer from './components/Footer';
+import HomePage from './pages/HomePage';
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
-  const handleLogout = () => setPage('home')
+// Layout component to include the header and footer on all pages
+const AppLayout = () => (
+  <div className="app">
+    <Header />
+    <Outlet />
+    <Footer />
+  </div>
+);
 
+export default function App() {
   return (
-    <div className="app">
-      <Header currentPage={page} onNavigate={setPage} />
-
-      {page === 'home' && <HomePage onNavigate={setPage} />}
-      {page === 'auth' && <AuthPage onNavigate={setPage} />}
-      {page === 'dashboard' && <DashboardPage onLogout={handleLogout} />}
-
-      <Footer />
-    </div>
-  )
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
+            />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
-
-export default App
