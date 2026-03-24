@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 
 import donationRoutes from "./routes/donationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+
+
 
 dotenv.config();
 
@@ -15,6 +18,7 @@ app.use(cors());
 console.log("MONGO URI:", process.env.MONGO_URI);
 
 app.use("/api/donations", donationRoutes);
+app.use("/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server working");
