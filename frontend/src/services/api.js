@@ -4,4 +4,8 @@ const API = axios.create({
   baseURL: "http://localhost:5000/api"
 });
 
+export const AdminAPI = axios.create({
+  baseURL: "http://localhost:5000"
+});
+
 export default API;
