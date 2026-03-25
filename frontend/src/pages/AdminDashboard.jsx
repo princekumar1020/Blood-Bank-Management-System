@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
 import Table from "../components/Table";
 import Toast from "../components/Toast";
@@ -73,7 +72,6 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
@@ -85,10 +83,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-
-      <div className="flex-1 p-8">
+    <div className="flex-1 p-8 bg-gray-50">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -148,8 +143,6 @@ export default function AdminDashboard() {
 
           <Table data={donations} onAction={handleAction} />
         </div>
-
-      </div>
 
       {/* Modals */}
       <AddDonationModal

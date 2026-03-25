@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeItem, setActiveItem] = useState('Dashboard');
+  const location = useLocation();
 
   const menuItems = [
     { name: 'Dashboard', icon: 'dashboard', path: '/' },
@@ -91,10 +92,10 @@ export default function Sidebar() {
         <ul className="space-y-2">
           {menuItems.map((item) => (
             <li key={item.name}>
-              <button
-                onClick={() => setActiveItem(item.name)}
+              <Link
+                to={item.path}
                 className={`w-full flex items-center px-3 py-3 rounded-lg transition-all duration-200 ${
-                  activeItem === item.name
+                  location.pathname === item.path
                     ? 'bg-red-50 text-red-700 border-r-2 border-red-600'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
@@ -105,7 +106,7 @@ export default function Sidebar() {
                 {!isCollapsed && (
                   <span className="font-medium">{item.name}</span>
                 )}
-              </button>
+              </Link>
             </li>
           ))}
         </ul>

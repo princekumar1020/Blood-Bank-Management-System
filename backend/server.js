@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 import donationRoutes from "./routes/donationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import donorRoutes from "./routes/donorRoutes.js";
 
 
 
@@ -23,7 +24,20 @@ app.use(cors());
 console.log("MONGO URI:", process.env.MONGO_URI);
 
 app.use("/api/donations", donationRoutes);
+app.use("/api/donors", donorRoutes);
 app.use("/admin", adminRoutes);
+
+app.get("/api", (req, res) => {
+  res.json({ 
+    message: "Blood Bank Management System API",
+    version: "1.0.0",
+    routes: {
+      donations: "/api/donations",
+      donors: "/api/donors",
+      admin: "/admin"
+    }
+  });
+});
 
 app.get("/", (req, res) => {
   res.send("Server working");
