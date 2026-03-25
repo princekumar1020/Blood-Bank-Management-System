@@ -2,13 +2,18 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import donationRoutes from "./routes/donationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
 
@@ -24,12 +29,19 @@ app.get("/", (req, res) => {
   res.send("Server working");
 });
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ DB Connected"))
-  .catch(err => console.log("❌ DB Error:", err.message));
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ DB Connected");
 
-const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.log("❌ DB Connection Error:", err.message);
+    process.exit(1);
+  }
+};
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+startServer();

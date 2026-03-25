@@ -1,9 +1,41 @@
 import express from "express";
 import Donor from "../models/Donor.js";
 import Inventory from "../models/Inventory.js";
+import Donation from "../models/Donation.js";
 
 const router = express.Router();
 
+// 🔥 STATS endpoint for dashboard
+router.get("/stats", async (req, res) => {
+  try {
+    const totalDonors = await Donor.countDocuments();
+    const pendingRequests = await Donor.countDocuments({ status: "pending" });
+    const inventory = await Inventory.find();
+    const totalBloodUnits = inventory.reduce((sum, item) => sum + item.units, 0);
+
+    // If no donors/inventory, fall back to donation-based stats
+    if (totalDonors === 0 && totalBloodUnits === 0) {
+      const allDonations = await Donation.find();
+      const totalDonations = allDonations.length;
+      const pendingDonations = allDonations.filter(d => d.status === 'pending').length;
+      const completedDonations = allDonations.filter(d => d.status === 'completed').length;
+
+      res.json({
+        totalDonors: totalDonations,
+        totalBloodUnits: completedDonations,
+        pendingRequests: pendingDonations
+      });
+    } else {
+      res.json({
+        totalDonors,
+        totalBloodUnits,
+        pendingRequests
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // 🔥 1. GET all donors (admin view)
 router.get("/donors", async (req, res) => {

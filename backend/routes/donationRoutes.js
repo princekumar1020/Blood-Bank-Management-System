@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.get("/", getDonations);
-router.get("/create", createDonation);
+router.post("/create", createDonation);
 router.post("/approve/:id", approveDonation);
 router.post("/complete/:id", completeDonation);
 

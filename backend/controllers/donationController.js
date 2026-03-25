@@ -7,9 +7,19 @@ export const getDonations = async (req, res) => {
 };
 
 export const createDonation = async (req, res) => {
-  const donation = new Donation({ bloodGroup: "A+" });
-  await donation.save();
-  res.json(donation);
+  try {
+    const { name, bloodGroup, units } = req.body;
+    const donation = new Donation({
+      name: name || "Anonymous",
+      bloodGroup: bloodGroup || "A+",
+      units: units || 1,
+      status: "pending"
+    });
+    await donation.save();
+    res.json(donation);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const approveDonation = async (req, res) => {
