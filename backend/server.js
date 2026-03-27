@@ -1,21 +1,46 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-
-// Load environment variables (we will create a .env file later)
-dotenv.config();
+const mongoose = require('mongoose');
+require('dotenv').config();   // load .env variables
 
 // Initialize the Express application
 const app = express();
 
-// Middleware to parse JSON data and allow cross-origin requests
-app.use(express.json());
-app.use(cors());
+// Middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors({
+    origin: 'http://localhost:5173', // Vite default port
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Define the port (defaults to 5000 if not specified in .env)
+// REMOVE THIS IN PRODUCTION - Development only bypass
+// This sets a default user if no auth token is provided
+app.use((req, res, next) => {
+    // ALWAYS set a mock user for now, even if token is present
+    // because we haven't implemented the login/token generation yet
+    req.user = { _id: '65f8a23bc9e3b4001fb12345' }; 
+    next();
+});
+
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI)
+.then(() => {
+    console.log("MongoDB Atlas Connected");
+})
+.catch((err) => {
+    console.log("Database connection error:", err);
+});
+
+// Routes
+app.use('/api/donation', require('./routes/donationRoutes'));
+app.use('/api/user', require('./routes/userRoutes'));
+
+// Define the port
 const PORT = process.env.PORT || 5000;
 
-// A basic test route
+// Test Route
 app.get('/', (req, res) => {
     res.send('Blood Bank Backend is running!');
 });
