@@ -19,9 +19,14 @@ mongoose.connect(process.env.MONGO_URI)
 // Initialize the Express application
 const app = express();
 
-// Middleware to parse JSON data and allow cross-origin requests
-app.use(express.json());
-app.use(cors());
+// Middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors({
+    origin: 'http://localhost:5173', // Vite default port
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Define Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -30,7 +35,7 @@ app.use('/api/requests', require('./routes/requests'));
 // Define the port (defaults to 5000 if not specified in .env)
 const PORT = process.env.PORT || 5000;
 
-// A basic test route
+// Test Route
 app.get('/', (req, res) => {
     res.send('Blood Bank Backend is running!');
 });

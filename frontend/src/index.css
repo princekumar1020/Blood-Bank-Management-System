@@ -1,3 +1,4 @@
+/* Reset default Vite styles that center components */
 :root {
   --bg: #fdf1f1;
   --surface: #fffdfa;
