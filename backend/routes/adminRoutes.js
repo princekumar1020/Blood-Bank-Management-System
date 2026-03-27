@@ -37,6 +37,16 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// 🔥 Inventory endpoint (blood stocks by group)
+router.get("/inventory", async (req, res) => {
+  try {
+    const inventory = await Inventory.find().sort({ bloodGroup: 1 });
+    res.json(inventory);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 🔥 1. GET all donors (admin view)
 router.get("/donors", async (req, res) => {
   const donors = await Donor.find();

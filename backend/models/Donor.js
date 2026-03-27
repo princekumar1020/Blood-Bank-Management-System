@@ -19,7 +19,7 @@ const donorSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "approved", "rejected", "completed"],
+    enum: ["pending", "approved", "rejected", "completed", "cancelled"],
     default: "pending"
   },
 

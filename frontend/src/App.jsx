@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import AdminDashboard from "./pages/AdminDashboard";
 import DonorManagement from "./pages/DonorManagement";
+import Inventory from "./pages/Inventory";
+import DonationMaterials from "./pages/DonationMaterials";
 
 function App() {
   return (
@@ -12,6 +14,8 @@ function App() {
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
             <Route path="/donors" element={<DonorManagement />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/materials" element={<DonationMaterials />} />
           </Routes>
         </div>
       </div>

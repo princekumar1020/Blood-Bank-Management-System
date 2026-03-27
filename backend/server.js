@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 import donationRoutes from "./routes/donationRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import donorRoutes from "./routes/donorRoutes.js";
+import Inventory from "./models/Inventory.js";
 
 
 
@@ -45,8 +46,22 @@ app.get("/", (req, res) => {
 
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10
+    });
     console.log("✅ DB Connected");
+
+    // Initialize blood inventory for all blood groups if not exist
+    const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+    for (const group of bloodGroups) {
+      await Inventory.findOneAndUpdate(
+        { bloodGroup: group },
+        { bloodGroup: group },
+        { upsert: true, new: true }
+      );
+    }
+    console.log("✅ Inventory initialized");
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
