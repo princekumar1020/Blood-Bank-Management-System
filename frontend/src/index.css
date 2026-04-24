@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #F5F5F7;
+  color: #1D1D1F;
+}
+
+.blood-drop {
+  filter: drop-shadow(0 0 10px rgba(139, 0, 0, 0.5));
+}
