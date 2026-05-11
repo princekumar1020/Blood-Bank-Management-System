@@ -1,26 +1,38 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Sidebar from "./components/Sidebar";
-import AdminDashboard from "./pages/AdminDashboard";
-import DonorManagement from "./pages/DonorManagement";
-import Inventory from "./pages/Inventory";
-import DonationMaterials from "./pages/DonationMaterials";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 
-function App() {
+import Header from './components/Header';
+import Footer from './components/Footer';
+import HomePage from './pages/HomePage';
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Layout component to include the header and footer on all pages
+const AppLayout = () => (
+  <div className="app">
+    <Header />
+    <Outlet />
+    <Footer />
+  </div>
+);
+
+export default function App() {
   return (
-    <Router>
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1">
-          <Routes>
-            <Route path="/" element={<AdminDashboard />} />
-            <Route path="/donors" element={<DonorManagement />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/materials" element={<DonationMaterials />} />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
+            />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;

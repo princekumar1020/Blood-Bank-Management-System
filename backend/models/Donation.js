@@ -1,12 +1,11 @@
-import mongoose from "mongoose";
+const mongoose = require('mongoose');
 
-const donationSchema = new mongoose.Schema({
-  name: { type: String, default: "Anonymous" },
-  bloodGroup: String,
-  units: { type: Number, default: 1 },
-  status: { type: String, default: "pending" },
-  tokenNumber: String,
-  appointmentTime: String
-});
+const DonationSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  date: { type: Date, required: true },
+  status: { type: String, enum: ['pending', 'completed', 'cancelled'], default: 'pending' },
+  appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
+  // Add more fields as needed
+}, { timestamps: true });
 
-export default mongoose.model("Donation", donationSchema);
+module.exports = mongoose.model('Donation', DonationSchema);
