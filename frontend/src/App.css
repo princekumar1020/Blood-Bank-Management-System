@@ -785,3 +785,16 @@ button {
 .role-switch-slider.recipient {
   transform: translateX(100%);
 }
+/* --- Blood Bank Request Panel Styling --- */
+.request-panel {
+  width: 100%;
+  max-width: 800px; /* Panel ko chauda karne ke liye */
+  min-height: 180px; /* Panel ki height badhane ke liye */
+  padding: 24px;
+  margin: 20px auto; /* Screen ke center mein laane ke liye */
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  text-align: left; /* Text ko left side align karne ke liye */
+}
