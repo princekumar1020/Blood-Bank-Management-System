@@ -1,7 +1,20 @@
 const express = require('express');
 const cors = require('cors');
+const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-require('dotenv').config();   // load .env variables
+
+// Load environment variables (we will create a .env file later)
+dotenv.config();
+
+// Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('Successfully connected to MongoDB Atlas'))
+    .catch((error) => {
+        console.error('Error connecting to MongoDB Atlas:');
+        console.error(error);
+        // Exit the process with an error code if we can't connect
+        process.exit(1);
+    });
 
 // Initialize the Express application
 const app = express();
@@ -15,29 +28,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// REMOVE THIS IN PRODUCTION - Development only bypass
-// This sets a default user if no auth token is provided
-app.use((req, res, next) => {
-    // ALWAYS set a mock user for now, even if token is present
-    // because we haven't implemented the login/token generation yet
-    req.user = { _id: '65f8a23bc9e3b4001fb12345' }; 
-    next();
-});
+// Define Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/requests', require('./routes/requests'));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-.then(() => {
-    console.log("MongoDB Atlas Connected");
-})
-.catch((err) => {
-    console.log("Database connection error:", err);
-});
-
-// Routes
-app.use('/api/donation', require('./routes/donationRoutes'));
-app.use('/api/user', require('./routes/userRoutes'));
-
-// Define the port
+// Define the port (defaults to 5000 if not specified in .env)
 const PORT = process.env.PORT || 5000;
 
 // Test Route

@@ -1,41 +1,38 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import DonationHistory from './components/DonationHistory';
-import NewDonationRequest from './components/NewDonationRequest';
-import Profile from './components/Profile';
-import DonorDashboard from './components/DonorDashboard';
-import RecipientDashboard from './components/RecipientDashboard';
-import './App.css';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 
-function App() {
-  const [role, setRole] = useState('donor'); // Default role
+import Header from './components/Header';
+import Footer from './components/Footer';
+import HomePage from './pages/HomePage';
+import AuthPage from './pages/AuthPage';
+import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
-  const handleRoleSwitch = (newRole) => {
-    setRole(newRole);
-  };
+// Layout component to include the header and footer on all pages
+const AppLayout = () => (
+  <div className="app">
+    <Header />
+    <Outlet />
+    <Footer />
+  </div>
+);
 
+export default function App() {
   return (
-    <Router>
-      <div className="flex min-h-screen bg-gray-50 font-sans tracking-tight">
-        <Sidebar role={role} />
-        <main className="flex-1 p-8 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-            <Route path="/dashboard" element={
-              role === 'donor' ? <DonorDashboard /> : <RecipientDashboard />
-            } />
-            <Route path="/new-request" element={<NewDonationRequest role={role} />} />
-            <Route path="/history" element={<DonationHistory role={role} />} />
-            <Route path="/profile" element={
-              <Profile onRoleSwitch={handleRoleSwitch} />
-            } />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
+            />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;
-
