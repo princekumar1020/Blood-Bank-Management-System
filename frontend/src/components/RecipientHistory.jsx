@@ -10,8 +10,8 @@ const RecipientHistory = () => {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                // Dhayan rakhna URL tere backend route se match kare
-                const res = await axios.get(`http://localhost:5000/api/donation/my-requests?userId=${userId}`);
+                // Fetch recipient's blood requests
+                const res = await axios.get(`http://localhost:5000/api/recipient/requests?userId=${userId}`);
                 setHistory(res.data);
             } catch (err) {
                 console.error("History fetch error", err);
@@ -43,8 +43,8 @@ const RecipientHistory = () => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Blood Type</th>
-                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Quantity</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Blood Group</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Units</th>
                                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Date Requested</th>
                                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Status</th>
                             </tr>
@@ -55,21 +55,21 @@ const RecipientHistory = () => {
                                     <tr key={req._id} className="group hover:bg-gray-50/50 transition-colors">
                                         <td className="p-6">
                                             <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center font-black text-red-600 group-hover:scale-110 transition-transform">
-                                                {req.bloodType}
+                                                {req.bloodGroup}
                                             </div>
                                         </td>
-                                        <td className="p-6 font-bold text-gray-700">{req.quantity}ml</td>
+                                        <td className="p-6 font-bold text-gray-700">{req.units} units</td>
                                         <td className="p-6 text-sm text-gray-500 font-medium">
                                             {new Date(req.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </td>
                                         <td className="p-6">
                                             <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                                                req.status === "Completed" ? "bg-green-100 text-green-700" :
-                                                req.status === "Rejected" ? "bg-rose-100 text-rose-700" :
+                                                req.status === "completed" || req.status === "fulfilled" ? "bg-green-100 text-green-700" :
+                                                req.status === "cancelled" ? "bg-rose-100 text-rose-700" :
                                                 "bg-amber-100 text-amber-700"
                                             }`}>
-                                                {req.status === "Completed" ? <CheckCircle size={12} /> : <Clock size={12} />}
-                                                {req.status}
+                                                {req.status === "completed" || req.status === "fulfilled" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                                {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                                             </span>
                                         </td>
                                     </tr>
