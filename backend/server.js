@@ -1,27 +1,46 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import requestRoutes from './routes/requestRoutes.js';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
+// Load environment variables (we will create a .env file later)
+dotenv.config();
+
+// Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('Successfully connected to MongoDB Atlas'))
+    .catch((error) => {
+        console.error('Error connecting to MongoDB Atlas:');
+        console.error(error);
+        // Exit the process with an error code if we can't connect
+        process.exit(1);
+    });
+
+// Initialize the Express application
 const app = express();
 
-// --- 1. MIDDLEWARE ---
-app.use(cors()); 
-app.use(express.json());
+// Middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors({
+    origin: 'http://localhost:5173', // Vite default port
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// --- 2. DATABASE CONNECTION (Prince's DB) ---
-// Note: # ko %23 likha hai connection string stable rakhne ke liye
-const MONGO_URI = "mongodb+srv://princekumar92430_db_user:Mongo%232498@building-database.efe2ro1.mongodb.net/bloodbank?retryWrites=true&w=majority";
+// Define Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/requests', require('./routes/requests'));
 
-mongoose.connect(MONGO_URI)
-    .then(() => console.log("✅ Prince's MongoDB Connected Successfully! 🎉"))
-    .catch((err) => console.error("❌ Connection Failed:", err.message));
+// Define the port (defaults to 5000 if not specified in .env)
+const PORT = process.env.PORT || 5000;
 
-// --- 3. ROUTES ---
-app.use('/api/requests', requestRoutes);
+// Test Route
+app.get('/', (req, res) => {
+    res.send('Blood Bank Backend is running!');
+});
 
-// --- 4. SERVER START ---
-const PORT = 5000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on http://127.0.0.1:${PORT}`);
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is successfully running on port ${PORT}`);
 });
