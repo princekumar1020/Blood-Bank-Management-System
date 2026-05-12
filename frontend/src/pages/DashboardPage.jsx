@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -8,19 +9,19 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const [requests, setRequests] = useState([]);
   const [newRequest, setNewRequest] = useState({ patientName: '', bloodGroup: 'A+', units: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
   const fetchRequests = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/requests`); // Auth token is now automatically sent
+      const response = await axios.get(`${API_URL}/api/requests`);
       setRequests(response.data);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
-      setError('Failed to fetch blood requests. Please try again later.');
+      showToast('Failed to load blood requests. Please try again later.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -37,15 +38,16 @@ export default function DashboardPage() {
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError('');
     try {
       // The requester ID is now handled by the backend using the auth token
       await axios.post(`${API_URL}/api/requests`, newRequest);
+      showToast('Blood request submitted successfully!', 'success');
       setNewRequest({ patientName: '', bloodGroup: 'A+', units: 1 }); // Reset form
       await fetchRequests(); // Re-fetch all requests to get the updated list
     } catch (err) {
       console.error('Failed to create request:', err);
-      setError(err.response?.data?.message || 'An error occurred while creating the request.');
+      const errorMsg = err.response?.data?.message || 'An error occurred while creating the request.';
+      showToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -96,7 +98,6 @@ export default function DashboardPage() {
                   <input type="number" name="units" value={newRequest.units} onChange={handleRequestChange} min="1" required disabled={isSubmitting} />
                 </label>
               </div>
-              {error && <p className="form-error">{error}</p>}
               <button type="submit" className="primary" disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>

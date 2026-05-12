@@ -11,6 +11,7 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
   const [eligibilityChecked, setEligibilityChecked] = useState(false);
   const [canBook, setCanBook] = useState(true);
   const [eligibilityMsg, setEligibilityMsg] = useState("");
+  const { showToast } = useToast();
 
   // Check eligibility on mount
   React.useEffect(() => {
@@ -66,7 +67,7 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
       setDate("");
       setNotes("");
       if (onSuccess) onSuccess();
-      alert("Appointment scheduled successfully!");
+      showToast("Appointment scheduled successfully!", 'success');
     } catch (err) {
       if (err.response && err.response.data && err.response.data.error) {
         setError(err.response.data.error);

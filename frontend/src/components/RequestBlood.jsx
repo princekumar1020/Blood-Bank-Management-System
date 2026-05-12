@@ -13,6 +13,7 @@ const RecipientDashboard = () => {
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
+  const { showToast } = useToast();
 
   // 🔴 FUNCTION: Fetch Data & Calculate Stats
   const fetchAndCalculateStats = async () => {
@@ -56,15 +57,17 @@ const RecipientDashboard = () => {
       });
       
       if (response.ok) {
-        setStatus({ type: 'success', message: 'Request submitted successfully! ✅' });
+        showToast('Request submitted successfully! ✅', 'success');
         setFormData({ bloodGroup: '', units: '', reason: '' });
         
         // Form bharne ke baad cards ka number turant update karega
         await fetchAndCalculateStats();
       } else {
+        showToast('Failed to submit.', 'error');
         setStatus({ type: 'error', message: 'Failed to submit.' });
       }
     } catch (error) {
+      showToast('Server Error.', 'error');
       setStatus({ type: 'error', message: 'Server Error.' });
     } finally {
       setLoading(false);

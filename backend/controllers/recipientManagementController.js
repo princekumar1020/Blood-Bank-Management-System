@@ -182,18 +182,23 @@ export const getRequests = async (req, res) => {
     // For urgency, you can add logic if you have an urgency field
     const requests = await BloodRequest.find(query).populate('recipient', 'fullName email mobileNo bloodGroup');
     // For each request, build row data
-    const requestData = requests.map((req, idx) => ({
-      id: req._id,
-      requestId: 'R' + (idx + 1).toString().padStart(3, '0'),
-      recipient: req.recipient.fullName,
-      bloodGroup: req.bloodGroup,
-      contact: { email: req.recipient.email, mobileNo: req.recipient.mobileNo },
-      requestDate: req.createdAt,
-      units: req.units,
-      urgency: req.urgency || 'Normal',
-      status: req.status,
-      requestFor: req.requestFor || 'self',
-    }));
+    const requestData = requests.map((req, idx) => {
+      const recipientName = req.recipient?.fullName || 'Unknown Recipient';
+      const recipientEmail = req.recipient?.email || 'N/A';
+      const recipientMobile = req.recipient?.mobileNo || 'N/A';
+      return {
+        id: req._id,
+        requestId: 'R' + (idx + 1).toString().padStart(3, '0'),
+        recipient: recipientName,
+        bloodGroup: req.bloodGroup,
+        contact: { email: recipientEmail, mobileNo: recipientMobile },
+        requestDate: req.createdAt,
+        units: req.units,
+        urgency: req.urgency || 'Normal',
+        status: req.status,
+        requestFor: req.requestFor || 'self',
+      };
+    });
     // Stats
     const totalRequests = requestData.length;
     const pending = requestData.filter(r => r.status === 'pending').length;

@@ -167,6 +167,72 @@ export const adminDeleteAppointment = async (req, res) => {
 		res.status(500).json({ error: 'Server error', details: err.message });
 	}
 };
+
+const emergencyAlertEmailBody = (donorName, bloodGroup, message, lastDonationDate) => {
+	const formattedDate = lastDonationDate ? new Date(lastDonationDate).toLocaleDateString() : 'N/A';
+	return {
+		subject: `Urgent Blood Needed: ${bloodGroup}`,
+		text: `Hello ${donorName},\n\nWe urgently need blood group ${bloodGroup}. Our records show your last donation was on ${formattedDate}, so you are eligible to donate again. Please consider coming in to help patients in need.\n\nMessage from admin:\n${message}\n\nReply to this email if you can donate or need more details. Thank you for your support.`,
+		html: `<p>Hello ${donorName},</p><p>We urgently need blood group <strong>${bloodGroup}</strong>. Our records show your last donation was on <strong>${formattedDate}</strong>, so you are eligible to donate again.</p><p><strong>Message from admin:</strong><br/>${message.replace(/\n/g, '<br/>')}</p><p>Please reply to this email if you can donate or need more details. Thank you for your support.</p>`
+	};
+};
+
+export const sendEmergencyAlert = async (req, res) => {
+	try {
+		const { bloodGroup, message } = req.body;
+		if (!bloodGroup || !message) {
+			return res.status(400).json({ error: 'Blood group and message are required.' });
+		}
+
+		const thresholdDate = new Date();
+		thresholdDate.setDate(thresholdDate.getDate() - 30);
+
+		const eligibleDonors = await User.aggregate([
+			{ $match: { role: 'donor', bloodGroup } },
+			{ $lookup: {
+				from: 'donations',
+				let: { userId: '$_id' },
+				pipeline: [
+					{ $match: { $expr: { $and: [ { $eq: ['$user', '$$userId'] }, { $eq: ['$status', 'completed'] } ] } } },
+					{ $sort: { date: -1 } },
+					{ $limit: 1 }
+				],
+				as: 'lastCompletedDonation'
+			} },
+			{ $addFields: {
+				lastDonationDate: { $arrayElemAt: ['$lastCompletedDonation.date', 0] }
+			} },
+			{ $match: {
+				$or: [
+					{ lastDonationDate: { $exists: false } },
+					{ lastDonationDate: { $lte: thresholdDate } }
+				]
+			} }
+		]);
+
+		if (!eligibleDonors.length) {
+			return res.json({ success: true, count: 0, message: 'No eligible donors found for alert.' });
+		}
+
+		const donorLastDonationMap = eligibleDonors.reduce((acc, d) => {
+			acc[d._id.toString()] = d.lastDonationDate;
+			return acc;
+		}, {});
+
+		const results = await Promise.allSettled(eligibleDonors.map(async (donor) => {
+			const lastDonationDate = donorLastDonationMap[donor._id.toString()] || null;
+			const { subject, text, html } = emergencyAlertEmailBody(donor.fullName, bloodGroup, message, lastDonationDate);
+			return await sendEmail(donor.email, subject, text, html);
+		}));
+
+		const sentCount = results.filter(r => r.status === 'fulfilled' && r.value?.success).length;
+		return res.json({ success: true, count: sentCount, attempted: eligibleDonors.length });
+	} catch (err) {
+		console.error('Error sending emergency alert:', err);
+		res.status(500).json({ error: 'Failed to send emergency alert.', details: err.message });
+	}
+};
+
 export const getAdminDashboard = async (req, res) => {
 	try {
 		console.log('getAdminDashboard start');
@@ -248,5 +314,6 @@ export default {
 	adminCompleteAppointment,
 	adminEditAppointment,
 	adminDeleteAppointment,
+	sendEmergencyAlert,
 	getAdminDashboard
 };

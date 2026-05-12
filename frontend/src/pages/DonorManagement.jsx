@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { useToast } from "../context/ToastContext";
 import { donorAPI } from "../services/api";
 import Modal from "../components/Modal";
-import Toast from "../components/Toast";
 
 export default function DonorManagement() {
   const [donors, setDonors] = useState([]);
@@ -12,7 +12,7 @@ export default function DonorManagement() {
   const [dateFilter, setDateFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingDonor, setEditingDonor] = useState(null);
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -73,11 +73,6 @@ export default function DonorManagement() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const showToast = (msg, type) => {
-    setToast({ message: msg, type });
-    setTimeout(() => setToast(null), 3000);
   };
 
   const handleOpenModal = (donor = null) => {
@@ -497,8 +492,6 @@ export default function DonorManagement() {
           </form>
         </Modal>
 
-      {/* Toast Notification */}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

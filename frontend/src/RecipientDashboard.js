@@ -4,6 +4,7 @@ import {
   Droplet, Calendar, History, Award, Bell, MessageSquare, LogOut, 
   TrendingUp, Heart, User, Edit, Trash2, Plus, X, Save, Clock, CheckCircle, Info 
 } from "lucide-react";
+import { useToast } from "./context/ToastContext";
 import MyProfile from "./MyProfile";
 import RecipientHistory from "./components/RecipientHistory";
 import Complaints from "./components/Complaints";
@@ -23,12 +24,14 @@ const getUserId = () => {
 };
 
 export default function RecipientDashboard() {
+  const { showToast } = useToast();
   const [activePage, setActivePage] = useState("Dashboard");
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
   const [user, setUser] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [isEditing, setIsEditing] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null });
   
   // Form State
   const [formData, setFormData] = useState({
@@ -97,8 +100,10 @@ export default function RecipientDashboard() {
       };
       if (isEditing) {
         await axios.put(`http://localhost:5000/api/recipient/request/${isEditing}`, payload);
+        showToast('Request updated successfully!', 'success');
       } else {
         await axios.post("http://localhost:5000/api/recipient/request", payload);
+        showToast('Blood request submitted successfully!', 'success');
       }
       setShowRequestModal(false);
       setIsEditing(null);
@@ -111,7 +116,8 @@ export default function RecipientDashboard() {
       fetchRequests();
       setActivePage("Dashboard");
     } catch (err) {
-      alert(err.response?.data?.error || "Action failed");
+      const errorMsg = err.response?.data?.error || "Action failed";
+      showToast(errorMsg, 'error');
     }
   };
 
@@ -128,12 +134,20 @@ export default function RecipientDashboard() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this request?")) return;
+    setConfirmDialog({ show: true, id });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = confirmDialog;
     try {
       await axios.delete(`http://localhost:5000/api/recipient/request/${id}`);
+      showToast('Request deleted successfully!', 'success');
       fetchRequests();
     } catch (err) {
-      alert(err.response?.data?.error || "Delete failed");
+      const errorMsg = err.response?.data?.error || "Delete failed";
+      showToast(errorMsg, 'error');
+    } finally {
+      setConfirmDialog({ show: false, id: null });
     }
   };
 
@@ -392,6 +406,30 @@ export default function RecipientDashboard() {
            </div>
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {confirmDialog.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm">
+            <h3 className="text-lg font-bold text-red-600 mb-2">Delete Request</h3>
+            <p className="text-gray-600 mb-4">Are you sure you want to delete this blood request? This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <button 
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 font-semibold"
+                onClick={() => setConfirmDialog({ show: false, id: null })}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-semibold"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

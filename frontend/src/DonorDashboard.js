@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useToast } from "./context/ToastContext";
 import { Droplet, Calendar, History, Award, Bell, MessageSquare, LogOut, TrendingUp, Heart, User, Edit, Trash2 } from "lucide-react";
 import ScheduleAppointment from "./ScheduleAppointment";
 import MyProfile from "./MyProfile";
@@ -34,6 +35,7 @@ export default function DonorDashboard() {
   const [editDate, setEditDate] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const userId = getUserId();
+  const { showToast } = useToast();
 
   useEffect(() => {
     // Always fetch user blood group for appointment form
@@ -236,9 +238,14 @@ export default function DonorDashboard() {
                       <button onClick={() => { setEditMode(true); setEditDate(latestAppointment.date?.slice(0,10)); setEditNotes(latestAppointment.notes || ""); }} className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold px-4 py-1 rounded flex items-center gap-1"><Edit className="w-4 h-4" />Edit</button>
                       <button onClick={async () => {
                         if(window.confirm('Are you sure you want to delete this appointment?')) {
-                          await axios.delete(`http://localhost:5000/api/donor/appointment/${latestAppointment._id}`);
-                          setLatestAppointment(null);
-                          setActivePage("Dashboard");
+                          try {
+                            await axios.delete(`http://localhost:5000/api/donor/appointment/${latestAppointment._id}`);
+                            setLatestAppointment(null);
+                            setActivePage("Dashboard");
+                            showToast('Appointment deleted successfully', 'success');
+                          } catch (err) {
+                            showToast('Failed to delete appointment', 'error');
+                          }
                         }
                       }} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-1 rounded flex items-center gap-1"><Trash2 className="w-4 h-4" />Delete</button>
                     </div>
@@ -256,9 +263,14 @@ export default function DonorDashboard() {
                     <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full p-2 rounded border mb-2" />
                     <div className="flex gap-2 mt-2">
                       <button onClick={async () => {
-                        await axios.put(`http://localhost:5000/api/donor/appointment/${latestAppointment._id}`, { date: editDate, notes: editNotes });
-                        setEditMode(false);
-                        setActivePage("Dashboard");
+                        try {
+                          await axios.put(`http://localhost:5000/api/donor/appointment/${latestAppointment._id}`, { date: editDate, notes: editNotes });
+                          showToast('Appointment updated successfully', 'success');
+                          setEditMode(false);
+                          setActivePage("Dashboard");
+                        } catch (err) {
+                          showToast('Failed to update appointment', 'error');
+                        }
                       }} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1 rounded">Save</button>
                       <button onClick={() => setEditMode(false)} className="bg-gray-400 hover:bg-gray-500 text-white font-bold px-4 py-1 rounded">Cancel</button>
                     </div>

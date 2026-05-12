@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { useToast } from "../context/ToastContext";
 import StatCard from "../components/StatCard";
 import Table from "../components/Table";
-import Toast from "../components/Toast";
 import { AddDonationModal } from "../components/Modal";
 import API, { AdminAPI } from "../services/api";
 
@@ -13,8 +13,8 @@ export default function AdminDashboard() {
     totalRecipients: 0,
     pendingRequests: 0
   });
-  const [toast, setToast] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchData();
@@ -62,11 +62,6 @@ export default function AdminDashboard() {
       console.error("Error adding donation:", error);
       showToast("Error adding donation", "error");
     }
-  };
-
-  const showToast = (message, type) => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
   };
 
   if (loading) {
@@ -150,15 +145,6 @@ export default function AdminDashboard() {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddDonation}
       />
-
-      {/* Toast Notifications */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
 
     </div>
   );

@@ -6,6 +6,7 @@ import {
   adminCompleteAppointment,
   adminEditAppointment,
   adminDeleteAppointment,
+  sendEmergencyAlert,
   getAdminDashboard
 } from '../controllers/adminController.js';
 import { getRequests, getRequest, approveRequest, rejectRequest, updateRequest, addRequest } from '../controllers/recipientManagementController.js';
@@ -17,6 +18,9 @@ router.get('/dashboard', (req, res, next) => {
   console.log('Admin dashboard route hit');
   next();
 }, getAdminDashboard);
+
+// Emergency alerts for eligible donors
+router.post('/alerts', sendEmergencyAlert);
 
 // Admin Appointment Management
 router.get('/appointments', getAllAppointments); // ?status=approved|scheduled|completed|cancelled

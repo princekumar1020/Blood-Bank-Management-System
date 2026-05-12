@@ -12,6 +12,8 @@ import recipientRoutes from './routes/recipient.js';
 import adminRoutes from './routes/admin.js';
 import inventoryRoutes from './routes/inventory.js';
 import donorManagementRoutes from './routes/donorManagement.js';
+import requestRoutes from './routes/requestRoutes.js';
+import requestsRoutes from './routes/requests.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +30,8 @@ app.use((req, res, next) => {
 // Serve static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/api/recipient-management', recipientManagementRoutes);
+app.use('/api/requests', requestRoutes);
+app.use('/api/requests', requestsRoutes);
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/bloodbank')
   .then(() => console.log('MongoDB connected'))

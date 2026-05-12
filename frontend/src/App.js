@@ -1,8 +1,7 @@
 
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-
-
+import { ToastProvider } from "./context/ToastContext";
 
 import Home from "./Home";
 import Auth from "./Auth";
@@ -15,19 +14,21 @@ import "./index.css";
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/recipient-dashboard" element={<RecipientDashboard />} />
-          <Route path="/donor-dashboard" element={<DonorDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/donor-management" element={<DonorManagement />} />
-        </Routes>
-      </div>
-    </Router>
+    <ToastProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/recipient-dashboard" element={<RecipientDashboard />} />
+            <Route path="/donor-dashboard" element={<DonorDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/donor-management" element={<DonorManagement />} />
+          </Routes>
+        </div>
+      </Router>
+    </ToastProvider>
   );
 }
 

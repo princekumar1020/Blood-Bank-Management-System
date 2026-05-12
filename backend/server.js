@@ -4,7 +4,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 
 // Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('Successfully connected to MongoDB Atlas'))
     .catch((error) => {
         console.error('Error connecting to MongoDB Atlas:');
@@ -26,11 +26,23 @@ app.use(cors({
 }));
 
 import authRoutes from './routes/auth.js';
+import requestRoutes from './routes/requestRoutes.js';
 import requestsRoutes from './routes/requests.js';
+import adminRoutes from './routes/adminRoutes.js';
+import donorRoutes from './routes/donorRoutes.js';
+import donationRoutes from './routes/donationRoutes.js';
+import inventoryRoutes from './routes/inventory.js';
+import recipientRoutes from './routes/recipient.js';
 
 // Define Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/requests', requestRoutes);
 app.use('/api/requests', requestsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/donors', donorRoutes);
+app.use('/api/donations', donationRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/recipients', recipientRoutes);
 
 // Define the port (defaults to 5000 if not specified in .env)
 const PORT = process.env.PORT || 5000;

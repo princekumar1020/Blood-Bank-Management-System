@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { AlertCircle, MessageSquare, Send, CheckCircle, Clock } from "lucide-react";
+import { useToast } from '../context/ToastContext';
 
 const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
@@ -12,6 +13,7 @@ const Complaints = () => {
         category: "general"
     });
     const userId = localStorage.getItem("userId");
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchComplaints = async () => {
@@ -47,9 +49,10 @@ const Complaints = () => {
             // Refresh complaints list
             const res = await axios.get(`http://localhost:5000/api/complaints?userId=${userId}`);
             setComplaints(res.data || []);
+            showToast("Complaint submitted successfully!", 'success');
         } catch (err) {
             console.error("Complaint submission error", err);
-            alert("Failed to submit complaint");
+            showToast("Failed to submit complaint", 'error');
         }
     };
 
