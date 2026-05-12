@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useToast } from './context/ToastContext';
+import AdminUserHistory from './components/AdminUserHistory';
 import RecipientManagement from './RecipientManagement';
+import Analytics from './components/Analytics';
 
 // --- Admin Requests Management Component ---
 function AdminRequests() {
@@ -618,6 +620,8 @@ export default function AdminDashboard() {
           {activeSidebar === 'Recipients' && <RecipientManagement />}
           {activeSidebar === 'Appointments' && <AdminAppointments />}
           {activeSidebar === 'Requests' && <AdminRequests />}
+          {activeSidebar === 'User History' && <AdminUserHistory />}
+          {activeSidebar === 'Analytics' && <Analytics />}
           {/* Placeholder content for other sidebar options */}
           {activeSidebar === 'Alerts' && (
             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
@@ -673,7 +677,7 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
-          {!["Dashboard","Recipients","Appointments","Requests","Alerts"].includes(activeSidebar) && (
+          {!["Dashboard","Recipients","Appointments","Requests","Alerts","User History","Analytics"].includes(activeSidebar) && (
             <div className="bg-white rounded-xl p-8 border border-gray-100 text-gray-500 text-center text-lg shadow-sm">
               Feature coming soon: {activeSidebar}
             </div>
