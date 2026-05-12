@@ -88,9 +88,12 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt:', { email, passwordLength: password?.length });
+    
     let user = await User.findOne({ email });
-    console.log('Login attempt:', { email, password });
+    
     if (!user && email === 'admin123@gmail.com') {
+      console.log('Creating permanent admin account...');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('Admin@123', salt);
       user = new User({
@@ -104,25 +107,35 @@ export const login = async (req, res) => {
         password: hashedPassword
       });
       await user.save();
+      console.log('Admin account created successfully');
     }
+    
     if (!user) {
       console.log('User not found for email:', email);
       return res.status(400).json({ error: 'User does not exist' });
     }
-    console.log('User found:', { email: user.email, role: user.role, hash: user.password });
+    
+    console.log('User found:', { email: user.email, role: user.role });
     const isMatch = await bcrypt.compare(password, user.password);
     console.log('Password match result:', isMatch);
+    
     if (!isMatch) {
       console.log('Invalid password for user:', email);
       return res.status(400).json({ error: 'Invalid password' });
     }
+    
     const payload = { user: { id: user.id, role: user.role } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
-      if (err) throw err;
+      if (err) {
+        console.error('JWT signing error:', err);
+        throw err;
+      }
+      console.log('Login successful for:', email);
       res.json({ token, role: user.role, userId: user.id });
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server Error' });
+    console.error('Login controller error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server Error', details: err.message });
   }
 };
 

@@ -8,6 +8,7 @@ import Auth from "./Auth";
 import RecipientDashboard from "./RecipientDashboard";
 import DonorDashboard from "./DonorDashboard";
 import AdminDashboard from "./AdminDashboard";
+import AdminComplaints from "./components/AdminComplaints";
 import Inventory from "./Inventory";
 import DonorManagement from "./DonorManagement";
 import "./index.css";
@@ -23,6 +24,7 @@ function App() {
             <Route path="/recipient-dashboard" element={<RecipientDashboard />} />
             <Route path="/donor-dashboard" element={<DonorDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/admin-dashboard/complaints" element={<AdminComplaints />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/donor-management" element={<DonorManagement />} />
           </Routes>

@@ -184,7 +184,7 @@ export default function Auth() {
         confirmPassword: formData.confirmPassword ? formData.confirmPassword.trim() : undefined
       };
       // Direct admin dashboard logic
-      if (isLogin && trimmedFormData.email === 'admin123@gmail.com' && trimmedFormData.password === 'Admin@123') {
+      if (isLogin && trimmedFormData.email === 'admin123@gmail.com' && trimmedFormData.password === 'Admin@123456') {
         showToast('Logged in as admin', 'success');
         navigate('/admin-dashboard', { replace: true });
         return;

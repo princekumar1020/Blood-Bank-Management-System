@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useToast } from './context/ToastContext';
 import RecipientManagement from './RecipientManagement';
@@ -395,6 +396,7 @@ const sidebarLinks = [
   { label: 'Recipients', icon: '🤝' },
   { label: 'Appointments', icon: '📅' },
   { label: 'Requests', icon: '📨' },
+  { label: 'Complaints', icon: '📋' },
   { label: 'User History', icon: '📜' },
   { label: 'Inventory', icon: '📦' },
   { label: 'Alerts', icon: '⚠️' },
@@ -422,6 +424,7 @@ export default function AdminDashboard() {
   const [alertMessage, setAlertMessage] = useState('Urgent blood needed for patients in critical condition. Please donate if you can.');
   const [alertLoading, setAlertLoading] = useState(false);
   const [alertSummary, setAlertSummary] = useState(null);
+  const navigate = useNavigate();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -495,7 +498,9 @@ export default function AdminDashboard() {
                   if (link.label === 'Donors') {
                     window.location.href = '/donor-management';
                   }
-                  // Optionally, handle navigation for Recipients if you want a separate route
+                  if (link.label === 'Complaints') {
+                    window.location.href = '/admin-dashboard/complaints';
+                  }
                 }}
               >
                 <span>{link.icon}</span> {link.label}
@@ -514,6 +519,7 @@ export default function AdminDashboard() {
                 {activeSidebar === 'Dashboard' && 'Overview of blood bank operations and statistics'}
                 {activeSidebar === 'Donors' && 'List of all registered donors'}
                 {activeSidebar === 'Recipients' && 'List of all registered recipients'}
+                {activeSidebar === 'Complaints' && 'Review and manage user complaints'}
                 {activeSidebar === 'User History' && 'User activity and donation/request history'}
                 {activeSidebar === 'Inventory' && 'Current blood inventory by type'}
                 {activeSidebar === 'Alerts' && 'Pending or urgent blood requests'}
@@ -522,6 +528,12 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-gray-700 font-semibold">Admin Dashboard</span>
+              <button
+                onClick={() => navigate('/admin-dashboard/complaints')}
+                className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+              >
+                Complaints
+              </button>
               <button className="text-[#e20000] font-bold hover:underline">Logout</button>
             </div>
           </div>
