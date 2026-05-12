@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const donationRequestSchema = new mongoose.Schema({
   donor: {
     type: mongoose.Schema.Types.ObjectId,
@@ -40,5 +39,4 @@ const donationRequestSchema = new mongoose.Schema({
     default: Date.now
   }
 }, { timestamps: true });
-
-module.exports = mongoose.model('DonationRequest', donationRequestSchema);
+export default mongoose.model('DonationRequest', donationRequestSchema);

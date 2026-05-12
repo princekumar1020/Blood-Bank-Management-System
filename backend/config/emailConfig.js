@@ -7,15 +7,33 @@ let transporter;
 
 const initializeTransporter = () => {
   if (!transporter) {
-    transporter = nodemailer.createTransporter({
+    console.log('Initializing transporter with:', {
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+      user: process.env.EMAIL_USER ? '***' : 'NOT SET'
     });
+    try {
+      const emailHost = process.env.EMAIL_HOST;
+      const emailPort = Number(process.env.EMAIL_PORT) || 587;
+      const useSecure = emailPort === 465;
+
+      transporter = nodemailer.createTransport({
+        host: emailHost,
+        port: emailPort,
+        secure: useSecure,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+      console.log('Transporter initialized successfully');
+    } catch (err) {
+      console.error('Error initializing transporter:', err);
+      throw err;
+    }
   }
   return transporter;
 };

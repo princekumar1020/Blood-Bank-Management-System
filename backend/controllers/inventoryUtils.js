@@ -1,7 +1,6 @@
-const Inventory = require('../models/Inventory');
-
+import Inventory from '../models/Inventory.js';
 // Decrease inventory units for a blood group
-exports.decreaseInventory = async (bloodGroup, units) => {
+export const decreaseInventory = async (bloodGroup, units) => {
   if (!bloodGroup || !units) return;
   const inv = await Inventory.findOne({ bloodGroup });
   if (!inv || inv.availableUnits < units) return;
@@ -25,4 +24,8 @@ exports.decreaseInventory = async (bloodGroup, units) => {
   inv.expiringUnits = inv.expiryDetails.filter(e => new Date(e.expiryDate) <= soon).reduce((sum, e) => sum + e.units, 0);
   inv.lastUpdated = new Date();
   await inv.save();
+};
+
+export default {
+  decreaseInventory
 };

@@ -1,8 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const DonationRequest = require('../models/DonationRequest');
-const authMiddleware = require('../middleware/authMiddleware');
+import express from 'express';
+import DonationRequest from '../models/DonationRequest.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
+const router = express.Router();
 // Get all requests for a donor
 router.get('/my-requests', authMiddleware, async (req, res) => {
   try {
@@ -96,5 +96,4 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error deleting request', error: error.message });
   }
 });
-
-module.exports = router;
+export default router;

@@ -173,10 +173,21 @@ function AdminAppointments() {
   };
 
   const handleReject = (id) => {
-    if (!window.confirm('Are you sure you want to reject/cancel this appointment?')) return;
+    console.log('handleReject called for', id);
+    if (!window.confirm('Are you sure you want to reject/cancel this appointment?')) {
+      console.log('handleReject cancelled by user for', id);
+      return;
+    }
     setActionLoading(l => ({ ...l, [id]: true }));
     axios.post(`http://localhost:5000/api/admin/appointments/${id}/reject`)
-      .then(fetchAppointments)
+      .then(res => {
+        console.log('handleReject response', res?.data);
+        fetchAppointments();
+      })
+      .catch(err => {
+        console.error('handleReject error', err);
+        alert('Unable to reject appointment. Check console for details.');
+      })
       .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
   };
 

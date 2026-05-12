@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const BloodRequestSchema = new mongoose.Schema({
   recipient: {
     type: mongoose.Schema.Types.ObjectId,
@@ -33,5 +32,4 @@ const BloodRequestSchema = new mongoose.Schema({
     type: String
   }
 }, { timestamps: true });
-
-module.exports = mongoose.model('BloodRequest', BloodRequestSchema);
+export default mongoose.model('BloodRequest', BloodRequestSchema);

@@ -1,8 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const BloodRequest = require('../models/BloodRequest');
-const authMiddleware = require('../middleware/authMiddleware');
+import express from 'express';
+import BloodRequest from '../models/BloodRequest.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
+const router = express.Router();
 // @route   GET api/requests
 // @desc    Get all blood requests
 // @access  Private
@@ -39,5 +39,4 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
-module.exports = router;
+export default router;

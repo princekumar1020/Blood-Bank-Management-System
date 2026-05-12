@@ -1,9 +1,8 @@
-// controllers/authController.js
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-exports.getProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
   try {
     const userId = req.query.userId;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
@@ -15,7 +14,7 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const { fullName, email, mobileNo, photoUrl } = req.body;
     const user = await User.findById(req.params.id);
@@ -31,7 +30,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-exports.uploadPhoto = async (req, res) => {
+export const uploadPhoto = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const user = await User.findById(req.params.id);
@@ -44,12 +43,11 @@ exports.uploadPhoto = async (req, res) => {
   }
 };
 
-exports.signup = async (req, res) => {
+export const signup = async (req, res) => {
   try {
     const { fullName, role, gender, bloodGroup, age, email, mobileNo, password } = req.body;
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ error: 'User already exists' });
-    // ...validation logic...
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
@@ -82,19 +80,17 @@ exports.signup = async (req, res) => {
       res.json({ token, role: user.role, userId: user.id });
     });
   } catch (err) {
-    console.error("Signup error: ", err);
+    console.error('Signup error: ', err);
     res.status(500).json({ error: 'Server Error' });
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     let user = await User.findOne({ email });
     console.log('Login attempt:', { email, password });
-    // If admin login and not found, create the admin on the fly
     if (!user && email === 'admin123@gmail.com') {
-      const bcrypt = require('bcryptjs');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('Admin@123', salt);
       user = new User({
@@ -128,4 +124,12 @@ exports.login = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server Error' });
   }
+};
+
+export default {
+  getProfile,
+  updateProfile,
+  uploadPhoto,
+  signup,
+  login
 };

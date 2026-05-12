@@ -1,10 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const mongoose = require('mongoose');
-
-// Load environment variables (we will create a .env file later)
-dotenv.config();
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import mongoose from 'mongoose';
 
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI)
@@ -28,9 +25,12 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+import authRoutes from './routes/auth.js';
+import requestsRoutes from './routes/requests.js';
+
 // Define Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/requests', require('./routes/requests'));
+app.use('/api/auth', authRoutes);
+app.use('/api/requests', requestsRoutes);
 
 // Define the port (defaults to 5000 if not specified in .env)
 const PORT = process.env.PORT || 5000;

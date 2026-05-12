@@ -1,6 +1,5 @@
-const multer = require('multer');
-const path = require('path');
-
+import multer from 'multer';
+import path from 'path';
 // Store in memory to easily convert to MongoDB if that's the goal, 
 // OR store on disk and save path in MongoDB. 
 // Given the user said "saving photo in mongo", we'll store as Buffer/Base64 in the DB 
@@ -22,5 +21,4 @@ const upload = multer({
         cb(new Error('Only images (jpeg, jpg, png, webp) are allowed!'));
     }
 });
-
-module.exports = upload;
+export default upload;

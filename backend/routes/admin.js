@@ -1,27 +1,38 @@
-const express = require('express');
+import express from 'express';
+import {
+  adminRejectAppointment,
+  getAllAppointments,
+  adminApproveAppointment,
+  adminCompleteAppointment,
+  adminEditAppointment,
+  adminDeleteAppointment,
+  getAdminDashboard
+} from '../controllers/adminController.js';
+import { getRequests, getRequest, approveRequest, rejectRequest, updateRequest, addRequest } from '../controllers/recipientManagementController.js';
+
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-
-
+console.log('Admin routes loaded');
 // Dashboard
-router.get('/dashboard', adminController.getAdminDashboard);
+router.get('/dashboard', (req, res, next) => {
+  console.log('Admin dashboard route hit');
+  next();
+}, getAdminDashboard);
 
 // Admin Appointment Management
-router.get('/appointments', adminController.getAllAppointments); // ?status=approved|scheduled|completed|cancelled
-router.post('/appointments/:id/approve', adminController.adminApproveAppointment);
-router.post('/appointments/:id/complete', adminController.adminCompleteAppointment);
+router.get('/appointments', getAllAppointments); // ?status=approved|scheduled|completed|cancelled
+router.post('/appointments/:id/approve', adminApproveAppointment);
+router.post('/appointments/:id/complete', adminCompleteAppointment);
 // Reject/cancel appointment (admin)
-router.post('/appointments/:id/reject', adminController.adminRejectAppointment);
-router.put('/appointments/:id', adminController.adminEditAppointment);
-router.delete('/appointments/:id', adminController.adminDeleteAppointment);
+router.post('/appointments/:id/reject', adminRejectAppointment);
+router.put('/appointments/:id', adminEditAppointment);
+router.delete('/appointments/:id', adminDeleteAppointment);
 
 
 // Admin Blood Request Management
-const recipientManagementController = require('../controllers/recipientManagementController');
-router.get('/requests', recipientManagementController.getRequests); // ?status=pending|completed|cancelled
-router.get('/requests/:id', recipientManagementController.getRequest);
-router.post('/requests/:id/approve', recipientManagementController.approveRequest);
-router.put('/requests/:id', recipientManagementController.updateRequest);
-router.post('/requests', recipientManagementController.addRequest);
-
-module.exports = router;
+router.get('/requests', getRequests); // ?status=pending|completed|cancelled
+router.get('/requests/:id', getRequest);
+router.post('/requests/:id/approve', approveRequest);
+router.post('/requests/:id/reject', rejectRequest);
+router.put('/requests/:id', updateRequest);
+router.post('/requests', addRequest);
+export default router;
