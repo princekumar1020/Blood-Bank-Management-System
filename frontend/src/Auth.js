@@ -175,22 +175,27 @@ export default function Auth() {
     const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Trim password fields to avoid autofill/space issues
-      const trimmedFormData = {
+      // Use original formData to include potential leading/trailing spaces if the user intended them
+      const submissionData = {
         ...formData,
-        password: formData.password.trim(),
-        confirmPassword: formData.confirmPassword ? formData.confirmPassword.trim() : undefined
+        confirmPassword: formData.confirmPassword || undefined
       };
       // Direct admin dashboard logic
-      if (isLogin && trimmedFormData.email === 'admin123@gmail.com' && trimmedFormData.password === 'Admin@123') {
+      if (isLogin && submissionData.email === 'admin123@gmail.com' && submissionData.password === 'Admin@123') {
+        const res = await axios.post("http://localhost:5000/api/auth/login", {
+          email: submissionData.email,
+          password: submissionData.password
+        });
+        localStorage.setItem("token", res.data.token);
+        if (res.data.userId) localStorage.setItem("userId", res.data.userId);
         alert('Logged in as admin');
         navigate('/admin-dashboard', { replace: true });
         return;
       }
       if (isLogin) {
         const res = await axios.post("http://localhost:5000/api/auth/login", {
-          email: trimmedFormData.email,
-          password: trimmedFormData.password
+          email: submissionData.email,
+          password: submissionData.password
         });
         localStorage.setItem("token", res.data.token);
         if (res.data.userId) localStorage.setItem("userId", res.data.userId);
@@ -205,7 +210,7 @@ export default function Auth() {
           navigate("/");
         }
       } else {
-        const { email, password, confirmPassword, age, role, mobileNo } = trimmedFormData;
+        const { email, password, confirmPassword, age, role, mobileNo } = submissionData;
         // Frontend Validations
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -226,7 +231,7 @@ export default function Auth() {
         if (!mobileRegex.test(mobileNo)) {
           return alert("Please enter a valid 10-digit mobile number.");
         }
-        const res = await axios.post("http://localhost:5000/api/auth/signup", trimmedFormData);
+        const res = await axios.post("http://localhost:5000/api/auth/signup", submissionData);
         alert("Registered successfully! Please login to continue.");
         setIsLogin(true);
         // Reset sensitive fields

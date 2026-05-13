@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 dotenv.config();
 
 // Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URI)
     .then(() => console.log('Successfully connected to MongoDB Atlas'))
     .catch((error) => {
         console.error('Error connecting to MongoDB Atlas:');
@@ -31,6 +31,15 @@ app.use(cors({
 // Define Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/requests', require('./routes/requests'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/donor', require('./routes/donor'));
+app.use('/api/recipient', require('./routes/recipient'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/complaints', require('./routes/complaints'));
+app.use('/api/donations', require('./routes/donationRoutes'));
+app.use('/api/donor-management', require('./routes/donorManagement'));
+app.use('/api/recipient-management', require('./routes/recipientManagement'));
+app.use('/api/users', require('./routes/userRoutes'));
 
 // Define the port (defaults to 5000 if not specified in .env)
 const PORT = process.env.PORT || 5000;

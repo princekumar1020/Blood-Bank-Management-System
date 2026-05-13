@@ -17,20 +17,30 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
     axios.get(`http://localhost:5000/api/donor/latest-appointment?userId=${userId}`)
       .then(res => {
         if (res.data?.appointment) {
-          if (res.data.appointment.status === 'completed') {
-            const lastDate = new Date(res.data.appointment.date);
-            const now = new Date();
-            const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-            if (diffDays < 90) {
-              setEligibilityMsg(`You are not eligible till ${new Date(lastDate.getTime() + 90*24*60*60*1000).toLocaleDateString()}`);
+          const status = res.data.appointment.status;
+          const lastDate = new Date(res.data.appointment.date);
+          const now = new Date();
+          
+          // Calculate eligibility date (30 days after last approved/completed)
+          const nextEligibleDate = new Date(lastDate);
+          nextEligibleDate.setDate(nextEligibleDate.getDate() + 30);
+
+          if (status === 'completed' || status === 'approved') {
+            if (now < nextEligibleDate) {
+              const diffTime = nextEligibleDate - now;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              setEligibilityMsg(`You can only schedule a new donation 30 days after your last donation. Please wait ${diffDays} more days.`);
               setCanBook(false);
             } else {
               setEligibilityMsg("");
               setCanBook(true);
             }
-          } else if (res.data.appointment.status === 'scheduled') {
+          } else if (status === 'scheduled') {
             setEligibilityMsg("You already have a pending appointment. Please wait for approval or completion.");
             setCanBook(false);
+          } else if (status === 'cancelled' || status === 'rejected') {
+            setEligibilityMsg("Your last request was rejected. You can schedule a new appointment now.");
+            setCanBook(true);
           } else {
             setEligibilityMsg("");
             setCanBook(true);

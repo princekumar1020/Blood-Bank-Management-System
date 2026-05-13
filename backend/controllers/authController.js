@@ -113,11 +113,12 @@ exports.login = async (req, res) => {
       console.log('User not found for email:', email);
       return res.status(400).json({ error: 'User does not exist' });
     }
-    console.log('User found:', { email: user.email, role: user.role, hash: user.password });
+    console.log('User found:', { email: user.email, role: user.role, hashLength: user.password ? user.password.length : 0 });
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match result:', isMatch);
+    console.log('Password match result for', email, ':', isMatch);
     if (!isMatch) {
       console.log('Invalid password for user:', email);
+      // Return a consistent message that the frontend can handle safely
       return res.status(400).json({ error: 'Invalid password' });
     }
     const payload = { user: { id: user.id, role: user.role } };

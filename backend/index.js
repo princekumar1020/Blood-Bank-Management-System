@@ -18,6 +18,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/bloodbank')
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/donor', require('./routes/donor'));
+app.use('/api/complaints', require('./routes/complaints'));
 app.use('/api/recipient', require('./routes/recipient'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/inventory', require('./routes/inventory'));

@@ -137,18 +137,35 @@ exports.scheduleAppointment = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    const activeAppointment = await Appointment.findOne({ user: userId, status: 'scheduled' });
-    if (activeAppointment) {
-      return res.status(400).json({ error: 'You already have a pending request. Please wait for it to be processed before creating a new one.' });
-    }
-    const lastCompleted = await Appointment.findOne({ user: userId, status: 'completed' }).sort({ date: -1 });
-    if (lastCompleted) {
-      const lastDate = new Date(lastCompleted.date);
-      const now = new Date(date);
-      const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-      if (diffDays < 90) {
-        return res.status(400).json({ error: `You can only schedule a new donation 90 days after your last donation. Please wait ${90 - diffDays} more days.` });
+
+    // Check for any successful or approved history (regardless of when it was created)
+    const recentSuccess = await Appointment.findOne({
+      user: userId,
+      status: { $in: ['completed', 'approved'] }
+    }).sort({ date: -1 });
+
+    if (recentSuccess) {
+      const lastDate = new Date(recentSuccess.date);
+      const nextEligibleDate = new Date(lastDate);
+      nextEligibleDate.setDate(nextEligibleDate.getDate() + 30);
+      
+      const now = new Date();
+      if (now < nextEligibleDate) {
+        const diffTime = nextEligibleDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return res.status(400).json({ 
+          error: `You are not eligible to donate yet. Your last approved/completed donation was on ${lastDate.toLocaleDateString()}. You can only donate again after 30 days. Please wait ${diffDays} more days until ${nextEligibleDate.toLocaleDateString()}.` 
+        });
       }
+    }
+
+    const activeAppointment = await Appointment.findOne({ 
+      user: userId, 
+      status: 'scheduled'
+    });
+    if (activeAppointment) {
+      return res.status(400).json({ error: 'You already have a pending request. Please wait for it to be processed.' });
     }
     const appointment = new Appointment({ user: userId, date, notes, bloodGroup });
     await appointment.save();

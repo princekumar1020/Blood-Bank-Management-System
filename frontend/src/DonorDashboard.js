@@ -3,6 +3,9 @@ import axios from "axios";
 import { Droplet, Calendar, History, Award, Bell, MessageSquare, LogOut, TrendingUp, Heart, User, Edit, Trash2 } from "lucide-react";
 import ScheduleAppointment from "./ScheduleAppointment";
 import MyProfile from "./MyProfile";
+import DonationHistory from "./components/DonationHistory";
+import SubmitComplaint from "./components/SubmitComplaint";
+import Certificates from "./components/Certificates";
 
 const sidebarLinks = [
   { label: "Dashboard", icon: <Droplet className="w-5 h-5" /> },
@@ -33,6 +36,7 @@ export default function DonorDashboard() {
   const [editMode, setEditMode] = useState(false);
   const [editDate, setEditDate] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [historyData, setHistoryData] = useState([]);
   const userId = getUserId();
 
   useEffect(() => {
@@ -50,6 +54,24 @@ export default function DonorDashboard() {
         setLoading(false);
       });
 
+    // Fetch history data for certificates
+    axios.get(`http://localhost:5000/api/admin/appointments`)
+      .then(res => {
+        const userAppointments = res.data.appointments.filter(app => 
+          app.user && (app.user._id === userId || app.user === userId)
+        );
+        const mappedHistory = userAppointments.map(app => ({
+          _id: app._id,
+          createdAt: app.date,
+          status: app.status === 'scheduled' ? 'Pending' : 
+                  app.status === 'approved' ? 'Approved' : 
+                  app.status === 'cancelled' ? 'Rejected' : 
+                  app.status.charAt(0).toUpperCase() + app.status.slice(1),
+          location: app.location || 'Blood Center'
+        }));
+        setHistoryData(mappedHistory);
+      });
+
     // Fetch latest appointment for dashboard
     if (activePage === "Dashboard") {
       axios.get(`http://localhost:5000/api/donor/latest-appointment?userId=${userId}`)
@@ -57,20 +79,29 @@ export default function DonorDashboard() {
           setLatestAppointment(res.data?.appointment || null);
           // Eligibility logic
           if (res.data?.appointment) {
-            if (res.data.appointment.status === 'completed' || res.data.appointment.status === 'fulfilled') {
-              const lastDate = new Date(res.data.appointment.date);
-              const now = new Date();
-              const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-              if (diffDays < 90) {
-                setEligibilityMsg(`You are not eligible till ${new Date(lastDate.getTime() + 90*24*60*60*1000).toLocaleDateString()}`);
+            const status = res.data.appointment.status;
+            const lastDate = new Date(res.data.appointment.date);
+            const now = new Date();
+            
+            // Calculate strictly based on date
+            const nextEligibleDate = new Date(lastDate);
+            nextEligibleDate.setDate(nextEligibleDate.getDate() + 30);
+
+            if (status === 'completed' || status === 'approved') {
+              if (now < nextEligibleDate) {
+                setEligibilityMsg(`You are not eligible till ${nextEligibleDate.toLocaleDateString()}. You must wait 30 days after an approved or completed donation.`);
                 setCanSchedule(false);
               } else {
                 setEligibilityMsg("");
                 setCanSchedule(true);
               }
-            } else if (res.data.appointment.status === 'scheduled') {
-              setEligibilityMsg("You already have a pending appointment. Please wait for approval or completion.");
+            } else if (status === 'scheduled') {
+              setEligibilityMsg("You already have a pending appointment. Please wait for it to be processed.");
               setCanSchedule(false);
+            } else if (status === 'cancelled' || status === 'rejected') {
+              // If last was rejected/cancelled, they can re-book immediately
+              setEligibilityMsg("Your last request was rejected. You can schedule a new appointment now.");
+              setCanSchedule(true);
             } else {
               setEligibilityMsg("");
               setCanSchedule(true);
@@ -117,7 +148,7 @@ export default function DonorDashboard() {
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top Navbar */}
         <header className="flex items-center justify-between px-10 py-6 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Donor Dashboard</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{activePage}</h2>
           <div className="flex items-center gap-6">
             <button
               className="text-red-600 font-bold flex items-center gap-2 hover:underline"
@@ -168,8 +199,8 @@ export default function DonorDashboard() {
                   </div>
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center shadow border border-gray-100 dark:border-gray-700">
                     <TrendingUp className="text-purple-500 w-7 h-7 mb-2" />
-                    <div className="text-2xl font-bold">{stats?.donorRank ?? "-"}</div>
-                    <div className="text-gray-500 dark:text-gray-400 font-semibold">Donor Rank</div>
+                    <div className="text-2xl font-bold">{stats?.bloodGroup ?? "Any"}</div>
+                    <div className="text-gray-500 dark:text-gray-400 font-semibold">Blood Group</div>
                   </div>
                 </div>
 
@@ -178,12 +209,40 @@ export default function DonorDashboard() {
                   {/* Regular Donor Progress */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow border border-gray-100 dark:border-gray-700">
                     <div className="font-bold text-lg mb-2">Regular Donor Progress</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Donations this year <span className="font-bold text-gray-900 dark:text-white">4/6 to Gold Badge</span></div>
-                    <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full mb-3">
-                      <div className="h-3 bg-yellow-400 rounded-full" style={{ width: '66%' }}></div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                       {historyData.filter(h => h.status === 'Completed').length < 10 ? (
+                        <>Donations: <span className="font-bold text-gray-900 dark:text-white">{historyData.filter(h => h.status === 'Completed').length}/10 to Gold Badge</span></>
+                      ) : (
+                        <>Donations: <span className="font-bold text-gray-900 dark:text-white">{historyData.filter(h => h.status === 'Completed').length}/30 to Platinum Badge</span></>
+                      )}
                     </div>
-                    <div className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-200 rounded-lg px-4 py-2 text-sm font-semibold">
-                      <span className="font-bold">Gold Badge Progress</span> <br />2 more donations to achieve Gold status!
+                    <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full mb-3">
+                      <div 
+                        className={`h-3 rounded-full transition-all duration-1000 ${historyData.filter(h => h.status === 'Completed').length < 10 ? 'bg-yellow-400' : 'bg-purple-500'}`} 
+                        style={{ 
+                          width: `${historyData.filter(h => h.status === 'Completed').length < 10 
+                            ? Math.min((historyData.filter(h => h.status === 'Completed').length / 10) * 100, 100)
+                            : Math.min((historyData.filter(h => h.status === 'Completed').length / 30) * 100, 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className={`${historyData.filter(h => h.status === 'Completed').length < 10 ? 'bg-yellow-100 text-yellow-800' : 'bg-purple-100 text-purple-800'} rounded-lg px-4 py-2 text-sm font-semibold`}>
+                      {historyData.filter(h => h.status === 'Completed').length < 10 ? (
+                        <>
+                          <span className="font-bold">Gold Badge Progress</span> <br />
+                          {10 - historyData.filter(h => h.status === 'Completed').length} more donations to achieve Gold status!
+                        </>
+                      ) : historyData.filter(h => h.status === 'Completed').length < 30 ? (
+                        <>
+                          <span className="font-bold">Platinum Badge Progress</span> <br />
+                          {30 - historyData.filter(h => h.status === 'Completed').length} more donations to achieve Platinum status!
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-bold">Ultimate Lifesaver!</span> <br />
+                          You have achieved Platinum status!
+                        </>
+                      )}
                     </div>
                   </div>
                   {/* Upcoming Appointment */}
@@ -213,6 +272,18 @@ export default function DonorDashboard() {
 
           {activePage === "Profile" && (
             <MyProfile userId={userId} />
+          )}
+
+          {activePage === "Donation History" && (
+            <DonationHistory role="donor" />
+          )}
+
+          {activePage === "Certificates" && (
+            <Certificates requests={historyData} userName={stats?.name} />
+          )}
+
+          {activePage === "Complaints" && (
+            <SubmitComplaint />
           )}
 
           {activePage === "Appointments" && (

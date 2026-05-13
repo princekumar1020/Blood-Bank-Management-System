@@ -125,10 +125,13 @@ exports.adminDeleteAppointment = async (req, res) => {
 
 exports.getAdminDashboard = async (req, res) => {
 	try {
+        console.log("Dashboard: Starting...");
 		// Total donors
 		const totalDonors = await User.countDocuments({ role: 'donor' });
+        console.log("Dashboard: totalDonors", totalDonors);
 		// Total recipients
 		const totalRecipients = await User.countDocuments({ role: 'recipient' });
+        console.log("Dashboard: totalRecipients", totalRecipients);
 		// Use Inventory collection for total units and blood group stats
 		const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 		const inventoryDocs = await Inventory.find({});
@@ -139,6 +142,7 @@ exports.getAdminDashboard = async (req, res) => {
 			bloodInventory[bg] = inv ? inv.availableUnits : 0;
 			totalUnits += inv ? inv.availableUnits : 0;
 		});
+        console.log("Dashboard: inventory done");
 
 		// Trend (last 6 months donations)
 		const now = new Date();
@@ -152,33 +156,57 @@ exports.getAdminDashboard = async (req, res) => {
 			});
 			trend.push({ month: d.toLocaleString('default', { month: 'short' }), count });
 		}
+        console.log("Dashboard: trend done");
 
 		// Recent donations (last 5)
-		const recentDonations = await Donation.find({ status: 'completed' })
-			.sort({ date: -1 })
-			.limit(5)
-			.populate('user', 'fullName bloodGroup');
-		const recentDonationsData = recentDonations.map(d => ({
-			name: d.user.fullName,
-			bloodGroup: d.user.bloodGroup,
-			date: d.date
-		}));
+		let recentDonationsData = [];
+		try {
+			const recentDonations = await Donation.find({ status: 'completed' })
+				.sort({ date: -1 })
+				.limit(5)
+				.lean();
+			
+			const populatedDonations = await Donation.populate(recentDonations, { path: 'user', select: 'fullName bloodGroup' });
+			
+			recentDonationsData = (populatedDonations || [])
+				.filter(d => d && d.user && d.user.fullName)
+				.map(d => ({
+					name: d.user.fullName,
+					bloodGroup: d.user.bloodGroup,
+					date: d.date
+				}));
+		} catch (e) {
+			console.error("Error fetching recent donations:", e);
+		}
+        console.log("Dashboard: donations done");
 
 		// Recent requests (last 5)
-		const recentRequests = await BloodRequest.find()
-			.sort({ createdAt: -1 })
-			.limit(5)
-			.populate('recipient', 'fullName bloodGroup');
-		const recentRequestsData = recentRequests.map(r => ({
-			name: r.recipient.fullName,
-			bloodGroup: r.bloodGroup,
-			units: r.units,
-			status: r.status,
-			createdAt: r.createdAt
-		}));
+		let recentRequestsData = [];
+		try {
+			const recentRequests = await BloodRequest.find()
+				.sort({ createdAt: -1 })
+				.limit(5)
+				.lean();
+			
+			const populatedRequests = await BloodRequest.populate(recentRequests, { path: 'recipient', select: 'fullName bloodGroup' });
+			
+			recentRequestsData = (populatedRequests || [])
+				.filter(r => r && r.recipient && r.recipient.fullName)
+				.map(r => ({
+					name: r.recipient.fullName,
+					bloodGroup: r.bloodGroup,
+					units: r.units,
+					status: r.status,
+					createdAt: r.createdAt
+				}));
+		} catch (e) {
+			console.error("Error fetching recent requests:", e);
+		}
+        console.log("Dashboard: requests done");
 
 		// Active alerts (for now, count of pending requests)
 		const activeAlerts = await BloodRequest.countDocuments({ status: 'pending' });
+        console.log("Dashboard: alerts done");
 
 		res.json({
 			totalDonors,
@@ -191,6 +219,7 @@ exports.getAdminDashboard = async (req, res) => {
 			recentRequests: recentRequestsData
 		});
 	} catch (err) {
+		console.error('Dashboard Error:', err);
 		res.status(500).json({ error: 'Failed to load dashboard data', details: err.message });
 	}
 };

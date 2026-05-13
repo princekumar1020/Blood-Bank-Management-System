@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Trash2
 } from 'lucide-react';
+import DonationHistory from './DonationHistory';
 
 const DonorDashboard = () => {
     const [requests, setRequests] = useState([]);
@@ -110,64 +111,9 @@ const DonorDashboard = () => {
 
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Donation History */}
-                <div className="lg:col-span-3 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                        <h2 className="font-black text-gray-800 uppercase tracking-tighter flex items-center gap-3 text-lg">
-                            <Clock size={22} className="text-red-500" />
-                            My Donation Requests
-                        </h2>
-                    </div>
-                    <div className="flex-1 divide-y divide-gray-50">
-                        {requests.length > 0 ? (
-                            requests.slice(0, 5).map((request) => (
-                                <div key={request._id} className="p-8 flex items-center justify-between hover:bg-gray-50/50 transition-colors group">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center font-black text-xl text-red-600 group-hover:scale-110 transition-transform shadow-inner">
-                                            {request.bloodType}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-black text-gray-800 text-lg">Donation Request</h3>
-                                            <div className="flex items-center gap-3 mt-1.5">
-                                                <span className={`text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm ${
-                                                    request.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                                                    request.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
-                                                    request.status === 'Approved' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-amber-100 text-amber-700'
-                                                }`}>
-                                                    {request.status}
-                                                </span>
-                                                <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">
-                                                    {new Date(request.createdAt).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <div className="text-right">
-                                            <div className="text-xl font-black text-gray-800">{request.quantity}ml</div>
-                                            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Quantity</div>
-                                        </div>
-                                        {/* Show delete button only if status is Pending */}
-                                        {request.status === 'Pending' && (
-                                            <button 
-                                                onClick={() => handleDelete(request._id)}
-                                                className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all group/delete shadow-sm"
-                                                title="Delete Request"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="p-20 text-center flex flex-col items-center gap-4">
-                                <AlertCircle size={48} className="text-gray-200" />
-                                <p className="font-bold text-gray-400 uppercase tracking-widest">No donation requests found</p>
-                            </div>
-                        )}
-                    </div>
+                {/* Donation History Component */}
+                <div className="lg:col-span-3">
+                    <DonationHistory role="donor" />
                 </div>
             </div>
         </div>
