@@ -4,11 +4,32 @@ import { useToast } from '../context/ToastContext';
 import { adminAPI } from '../services/api';
 
 const statusStyles = {
-  Pending: 'bg-amber-100 text-amber-700',
-  'In Review': 'bg-amber-100 text-amber-700',
-  Responded: 'bg-blue-100 text-blue-700',
-  Reopened: 'bg-fuchsia-100 text-fuchsia-700',
-  Closed: 'bg-green-100 text-green-700'
+  pending: 'bg-amber-100 text-amber-700',
+  'in-progress': 'bg-amber-100 text-amber-700',
+  responded: 'bg-blue-100 text-blue-700',
+  reopened: 'bg-fuchsia-100 text-fuchsia-700',
+  resolved: 'bg-green-100 text-green-700'
+};
+
+const normalizeStatus = (status) => {
+  if (!status) return 'pending';
+  const value = status.toString().trim().toLowerCase();
+  if (value === 'in review' || value === 'in-review' || value === 'inprogress') return 'in-progress';
+  if (value === 'closed') return 'resolved';
+  if (value === 'open') return 'pending';
+  return value;
+};
+
+const getStatusLabel = (status) => {
+  const normalized = normalizeStatus(status);
+  const labels = {
+    pending: 'Pending',
+    'in-progress': 'In Review',
+    responded: 'Responded',
+    reopened: 'Reopened',
+    resolved: 'Resolved'
+  };
+  return labels[normalized] || normalized;
 };
 
 const AdminComplaints = () => {
@@ -46,7 +67,17 @@ const AdminComplaints = () => {
   const openComplaintDetails = (complaint) => {
     setSelectedComplaint(complaint);
     setResponseText(complaint.adminResponse || '');
-    setStatusOption(['In Review', 'Responded'].includes(complaint.status) ? complaint.status : 'In Review');
+    
+    const normalizedStatus = normalizeStatus(complaint.status);
+    const statusMapping = {
+      pending: 'In Review',
+      'in-progress': 'In Review', 
+      responded: 'Responded',
+      resolved: 'Resolved',
+      reopened: 'In Review'
+    };
+    
+    setStatusOption(statusMapping[normalizedStatus] || 'In Review');
     setDetailsOpen(true);
   };
 
@@ -65,9 +96,18 @@ const AdminComplaints = () => {
 
     setActionLoading(true);
     try {
+      // Map display status to backend status
+      const statusMapping = {
+        'In Review': 'in-progress',
+        'Responded': 'responded',
+        'Resolved': 'resolved'
+      };
+      
+      const backendStatus = statusMapping[statusOption] || 'in-progress';
+      
       const response = await adminAPI.respondToComplaint(selectedComplaint._id, {
         adminResponse: responseText.trim(),
-        status: statusOption
+        status: backendStatus
       });
       const responseData = response.data || response;
       const emailStatus = responseData.emailStatus || 'failed';
@@ -105,10 +145,18 @@ const AdminComplaints = () => {
 
   const counts = complaints.reduce(
     (acc, complaint) => {
-      acc[complaint.status] = (acc[complaint.status] || 0) + 1;
+      const statusKey = normalizeStatus(complaint.status);
+      acc[statusKey] = (acc[statusKey] || 0) + 1;
+
+      const wasReopened = statusKey === 'reopened' ||
+        complaint.responseHistory?.some((item) => normalizeStatus(item.status) === 'reopened');
+      if (wasReopened) {
+        acc.reopened = (acc.reopened || 0) + 1;
+      }
+
       return acc;
     },
-    { Pending: 0, 'In Review': 0, Responded: 0, Reopened: 0, Closed: 0 }
+    { pending: 0, 'in-progress': 0, responded: 0, reopened: 0, resolved: 0 }
   );
 
   return (
@@ -142,10 +190,16 @@ const AdminComplaints = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 mt-8 sm:grid-cols-5">
-          {['Pending', 'In Review', 'Responded', 'Reopened', 'Closed'].map((status) => (
-            <div key={status} className="rounded-3xl border border-gray-100 bg-gray-50 p-5 shadow-sm">
-              <p className="text-sm font-semibold text-gray-600">{status}</p>
-              <p className="mt-3 text-3xl font-bold text-slate-900">{counts[status] || 0}</p>
+          {[
+            { key: 'pending', label: 'Pending' },
+            { key: 'in-progress', label: 'In Review' },
+            { key: 'responded', label: 'Responded' },
+            { key: 'reopened', label: 'Reopened' },
+            { key: 'resolved', label: 'Resolved' }
+          ].map(({ key, label }) => (
+            <div key={key} className="rounded-3xl border border-gray-100 bg-gray-50 p-5 shadow-sm">
+              <p className="text-sm font-semibold text-gray-600">{label}</p>
+              <p className="mt-3 text-3xl font-bold text-slate-900">{counts[key] || 0}</p>
             </div>
           ))}
         </div>
@@ -185,14 +239,21 @@ const AdminComplaints = () => {
                 {complaints.map((complaint) => (
                   <tr key={complaint._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-semibold text-slate-900">{complaint._id.slice(-8)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.userName || complaint.userEmail || complaint.userId || 'Unknown'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.userName || complaint.userEmail || (typeof complaint.userId === 'object' ? complaint.userId?.fullName : complaint.userId) || 'Unknown'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700 capitalize">{complaint.userRole}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{complaint.subject || complaint.title || 'No subject'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">{complaint.message || complaint.description || 'No message'}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${statusStyles[complaint.status] || 'bg-slate-100 text-slate-700'}`}>
-                        {complaint.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${statusStyles[normalizeStatus(complaint.status)] || 'bg-slate-100 text-slate-700'}`}>
+                          {getStatusLabel(complaint.status)}
+                        </span>
+                        {complaint.responseHistory?.length > 0 && (
+                          <span className="inline-flex items-center justify-center w-5 h-5 bg-fuchsia-100 text-fuchsia-700 rounded-full text-[10px] font-bold" title="Reopened complaint">
+                            ↻
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">{new Date(complaint.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                     <td className="px-6 py-4 space-x-2">
@@ -216,9 +277,16 @@ const AdminComplaints = () => {
           <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm uppercase tracking-[0.35em] text-red-600 font-black">Complaint details</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm uppercase tracking-[0.35em] text-red-600 font-black">Complaint details</p>
+                  {selectedComplaint.responseHistory?.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-fuchsia-100 text-fuchsia-700 rounded-full text-xs font-semibold">
+                      ↻ Reopened
+                    </span>
+                  )}
+                </div>
                 <h2 className="mt-2 text-2xl font-bold text-slate-900">{selectedComplaint.subject || selectedComplaint.title || 'No subject'}</h2>
-                <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.userName || selectedComplaint.userEmail || selectedComplaint.userId || 'Unknown user'} ({selectedComplaint.userRole || 'unknown'})</p>
+                <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.userName || selectedComplaint.userEmail || (typeof selectedComplaint.userId === 'object' ? selectedComplaint.userId?.fullName : selectedComplaint.userId) || 'Unknown user'} ({selectedComplaint.userRole || 'unknown'})</p>
               </div>
               <button onClick={closeModal} className="rounded-full border border-gray-200 p-3 text-slate-600 transition hover:bg-gray-100">
                 <X size={18} />
@@ -245,8 +313,8 @@ const AdminComplaints = () => {
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Status</p>
-                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] mt-3 ${statusStyles[selectedComplaint.status] || 'bg-slate-100 text-slate-700'}`}>
-                      {selectedComplaint.status}
+                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] mt-3 ${statusStyles[normalizeStatus(selectedComplaint.status)] || 'bg-slate-100 text-slate-700'}`}>
+                      {getStatusLabel(selectedComplaint.status)}
                     </span>
                   </div>
 
@@ -256,13 +324,31 @@ const AdminComplaints = () => {
                       <div className="mt-3 space-y-3">
                         {selectedComplaint.responseHistory.map((item, index) => (
                           <div key={index} className="rounded-2xl border border-gray-200 bg-white p-3 text-sm text-gray-700">
-                            <p>{item.message}</p>
-                            <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-gray-400">{new Date(item.createdAt).toLocaleString()}</p>
+                            <p>{item.response}</p>
+                            <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-gray-400">
+                              {new Date(item.respondedAt).toLocaleString()} • Status: {getStatusLabel(item.status)}
+                            </p>
                           </div>
                         ))}
+                        {selectedComplaint.adminResponse && (
+                          <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-gray-700">
+                            <p className="font-semibold text-red-700">Latest Response:</p>
+                            <p>{selectedComplaint.adminResponse}</p>
+                            <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-red-600">
+                              {new Date(selectedComplaint.updatedAt).toLocaleString()} • Status: {getStatusLabel(selectedComplaint.status)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : selectedComplaint.adminResponse ? (
+                      <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-3 text-sm text-gray-700">
+                        <p>{selectedComplaint.adminResponse}</p>
+                        <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-gray-400">
+                          {new Date(selectedComplaint.updatedAt).toLocaleString()} • Status: {getStatusLabel(selectedComplaint.status)}
+                        </p>
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-gray-500">No history recorded yet.</p>
+                      <p className="mt-3 text-sm text-gray-500">No responses yet.</p>
                     )}
                   </div>
 
@@ -283,6 +369,7 @@ const AdminComplaints = () => {
                       >
                         <option value="In Review">In Review</option>
                         <option value="Responded">Responded</option>
+                        <option value="Resolved">Resolved</option>
                       </select>
                       <button
                         onClick={handleResponseSubmit}

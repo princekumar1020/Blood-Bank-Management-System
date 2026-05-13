@@ -22,9 +22,25 @@ const ComplaintSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'in-progress', 'resolved'],
+    enum: ['pending', 'in-progress', 'resolved', 'reopened'],
     default: 'pending'
-  }
+  },
+  adminResponse: {
+    type: String,
+    default: null
+  },
+  responseHistory: [{
+    response: String,
+    respondedAt: {
+      type: Date,
+      default: Date.now
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'in-progress', 'resolved', 'reopened'],
+      default: 'pending'
+    }
+  }]
 }, { timestamps: true });
 
 export default mongoose.model('Complaint', ComplaintSchema);

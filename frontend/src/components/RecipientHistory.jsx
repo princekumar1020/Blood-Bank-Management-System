@@ -11,7 +11,7 @@ const RecipientHistory = () => {
         const fetchHistory = async () => {
             try {
                 // Fetch recipient's blood requests
-                const res = await axios.get(`http://localhost:5000/api/recipients/requests?userId=${userId}`);
+                const res = await axios.get(`http://localhost:5000/api/recipient/requests?userId=${userId}`);
                 setHistory(res.data);
             } catch (err) {
                 console.error("History fetch error", err);

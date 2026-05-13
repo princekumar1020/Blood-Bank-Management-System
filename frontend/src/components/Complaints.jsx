@@ -44,8 +44,10 @@ const Complaints = () => {
         e.preventDefault();
         try {
             await API.post("/complaints", {
-                ...formData,
-                userId
+                userId,
+                category: formData.category,
+                title: formData.subject,
+                description: formData.message
             });
             setFormData({ subject: "", message: "", category: "general" });
             setShowForm(false);
@@ -59,16 +61,16 @@ const Complaints = () => {
         }
     };
 
-    const handleResolve = async (complaintId) => {
+    const handleReopen = async (complaintId) => {
         try {
-            await API.patch(`/complaints/${complaintId}/resolve`);
+            await API.patch(`/complaints/${complaintId}/reopen`, { userId });
             // Refresh complaints
             const res = await API.get(`/complaints?userId=${userId}`);
             setComplaints(res.data || []);
-            showToast("Complaint resolved successfully!", 'success');
+            showToast("Complaint reopened successfully!", 'success');
         } catch (err) {
-            console.error("Resolve error", err);
-            showToast("Failed to resolve complaint", 'error');
+            console.error("Reopen error", err);
+            showToast("Failed to reopen complaint", 'error');
         }
     };
 
@@ -195,15 +197,20 @@ const Complaints = () => {
                                         </td>
                                         <td className="p-6">
                                             <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                                                complaint.status === "Pending" ? "bg-amber-100 text-amber-700" :
-                                                complaint.status === "In Review" ? "bg-amber-100 text-amber-700" :
-                                                complaint.status === "Responded" ? "bg-blue-100 text-blue-700" :
-                                                complaint.status === "Reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
-                                                complaint.status === "Closed" ? "bg-green-100 text-green-700" :
+                                                complaint.status === "pending" ? "bg-amber-100 text-amber-700" :
+                                                complaint.status === "in-progress" ? "bg-amber-100 text-amber-700" :
+                                                complaint.status === "responded" ? "bg-blue-100 text-blue-700" :
+                                                complaint.status === "reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
+                                                complaint.status === "resolved" ? "bg-green-100 text-green-700" :
                                                 "bg-red-100 text-red-700"
                                             }`}>
-                                                {complaint.status === "Closed" ? <CheckCircle size={12} /> : <Clock size={12} />}
-                                                {complaint.status}
+                                                {complaint.status === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                                {complaint.status === "pending" ? "Pending" :
+                                                 complaint.status === "in-progress" ? "In Review" :
+                                                 complaint.status === "responded" ? "Responded" :
+                                                 complaint.status === "reopened" ? "Reopened" :
+                                                 complaint.status === "resolved" ? "Resolved" :
+                                                 complaint.status}
                                             </span>
                                         </td>
                                         <td className="p-6 text-sm text-gray-600 max-w-xs truncate">
@@ -218,16 +225,7 @@ const Complaints = () => {
                                                     <MessageSquare size={14} />
                                                     View
                                                 </button>
-                                                {complaint.status !== 'Closed' && (
-                                                    <button
-                                                        onClick={() => handleResolve(complaint._id)}
-                                                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full hover:bg-green-200 transition-colors"
-                                                    >
-                                                        <CheckCircle size={14} />
-                                                        Resolve
-                                                    </button>
-                                                )}
-                                                {complaint.status === 'Closed' && (
+                                                {complaint.status === 'resolved' && (
                                                     <button
                                                         onClick={() => handleReopen(complaint._id)}
                                                         className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-fuchsia-700 bg-fuchsia-100 rounded-full hover:bg-fuchsia-200 transition-colors"
@@ -280,15 +278,20 @@ const Complaints = () => {
                             <div>
                                 <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Status</p>
                                 <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-tighter ${
-                                    selectedComplaint.status === "Pending" ? "bg-amber-100 text-amber-700" :
-                                    selectedComplaint.status === "In Review" ? "bg-amber-100 text-amber-700" :
-                                    selectedComplaint.status === "Responded" ? "bg-blue-100 text-blue-700" :
-                                    selectedComplaint.status === "Reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
-                                    selectedComplaint.status === "Closed" ? "bg-green-100 text-green-700" :
+                                    selectedComplaint.status === "pending" ? "bg-amber-100 text-amber-700" :
+                                    selectedComplaint.status === "in-progress" ? "bg-amber-100 text-amber-700" :
+                                    selectedComplaint.status === "responded" ? "bg-blue-100 text-blue-700" :
+                                    selectedComplaint.status === "reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
+                                    selectedComplaint.status === "resolved" ? "bg-green-100 text-green-700" :
                                     "bg-red-100 text-red-700"
                                 }`}>
-                                    {selectedComplaint.status === "Closed" ? <CheckCircle size={12} /> : <Clock size={12} />}
-                                    {selectedComplaint.status}
+                                    {selectedComplaint.status === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                    {selectedComplaint.status === "pending" ? "Pending" :
+                                     selectedComplaint.status === "in-progress" ? "In Review" :
+                                     selectedComplaint.status === "responded" ? "Responded" :
+                                     selectedComplaint.status === "reopened" ? "Reopened" :
+                                     selectedComplaint.status === "resolved" ? "Resolved" :
+                                     selectedComplaint.status}
                                 </span>
                             </div>
                             <div>

@@ -120,7 +120,7 @@ export default function MyProfile({ userId: propUserId }) {
                 ) : (
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{user?.fullName}</h1>
                 )}
-                <p className="text-gray-400 font-semibold uppercase tracking-widest text-[10px] sm:text-xs">Recipient Profile</p>
+                <p className="text-gray-400 font-semibold uppercase tracking-widest text-[10px] sm:text-xs">{user?.role === 'donor' ? 'Donor Profile' : user?.role === 'recipient' ? 'Recipient Profile' : 'Profile'}</p>
             </div>
 
             {/* Form Fields - Grid for better spacing */}

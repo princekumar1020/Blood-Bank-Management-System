@@ -147,7 +147,7 @@ const Profile = ({ onRoleSwitch }) => {
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
                                 user.role === 'donor' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-600 border-blue-100'
                             }`}>
-                                {user.role}
+                                {user.role || 'donor'}
                             </span>
                         </div>
                     </div>
