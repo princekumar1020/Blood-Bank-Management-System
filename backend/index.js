@@ -12,6 +12,7 @@ import recipientRoutes from './routes/recipient.js';
 import adminRoutes from './routes/admin.js';
 import inventoryRoutes from './routes/inventory.js';
 import donorManagementRoutes from './routes/donorManagement.js';
+import complaintRoutes from './routes/complaintRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,7 @@ app.use('/api/recipient', recipientRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/donor-management', donorManagementRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

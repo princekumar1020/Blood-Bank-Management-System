@@ -97,8 +97,10 @@ export default function RecipientDashboard() {
       };
       if (isEditing) {
         await axios.put(`http://localhost:5000/api/recipient/request/${isEditing}`, payload);
+        alert("Blood request updated successfully!");
       } else {
         await axios.post("http://localhost:5000/api/recipient/request", payload);
+        alert("Blood request submitted successfully!");
       }
       setShowRequestModal(false);
       setIsEditing(null);
