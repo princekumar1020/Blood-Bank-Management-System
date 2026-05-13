@@ -12,6 +12,7 @@ import recipientRoutes from './routes/recipient.js';
 import adminRoutes from './routes/admin.js';
 import inventoryRoutes from './routes/inventory.js';
 import donorManagementRoutes from './routes/donorManagement.js';
+import complaintRoutes from './routes/complaints.js';
 import requestRoutes from './routes/requestRoutes.js';
 import requestsRoutes from './routes/requests.js';
 
@@ -32,6 +33,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/api/recipient-management', recipientManagementRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/requests', requestsRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/bloodbank')
   .then(() => console.log('MongoDB connected'))

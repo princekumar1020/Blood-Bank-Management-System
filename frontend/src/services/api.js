@@ -1,12 +1,24 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api"
+  baseURL: "/api"
 });
 
-export const AdminAPI = axios.create({
-  baseURL: "http://localhost:5000/api"
+const AdminAPI = axios.create({
+  baseURL: "/api"
 });
+
+// Add auth token to requests
+const addAuthToken = (config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+};
+
+API.interceptors.request.use(addAuthToken);
+AdminAPI.interceptors.request.use(addAuthToken);
 
 export const adminAPI = {
   getComplaints: (search) => AdminAPI.get(`/complaints${search ? `?search=${encodeURIComponent(search)}` : ''}`),

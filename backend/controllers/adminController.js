@@ -233,6 +233,83 @@ export const sendEmergencyAlert = async (req, res) => {
 	}
 };
 
+export const getAdminHistory = async (req, res) => {
+	try {
+		const { search = '', type = 'all', role = 'all', status = 'all', startDate, endDate } = req.query;
+
+		const donationFilter = {};
+		const requestFilter = {};
+
+		if (status !== 'all') {
+			donationFilter.status = status;
+			requestFilter.status = status;
+		}
+
+		const donations = (type === 'all' || type === 'Donation')
+			? await Donation.find(donationFilter).populate('user', 'fullName bloodGroup role')
+			: [];
+		const requests = (type === 'all' || type === 'Request')
+			? await BloodRequest.find(requestFilter).populate('recipient', 'fullName bloodGroup role')
+			: [];
+
+		let history = [
+			...donations.map((d) => ({
+				_id: d._id,
+				date: d.date,
+				type: 'Donation',
+				userName: d.user?.fullName || 'Unknown',
+				role: d.user?.role || 'donor',
+				bloodGroup: d.user?.bloodGroup || 'Unknown',
+				details: d.appointmentId ? `Donation linked to appointment ${d.appointmentId}` : 'Donation record',
+				status: d.status
+			})),
+			...requests.map((r) => ({
+				_id: r._id,
+				date: r.createdAt,
+				type: 'Request',
+				userName: r.recipient?.fullName || 'Unknown',
+				role: r.recipient?.role || 'recipient',
+				bloodGroup: r.bloodGroup,
+				details: `Requested ${r.units} unit(s) for ${r.requestFor === 'family' ? 'family' : 'self'}${r.reason ? `: ${r.reason}` : ''}`,
+				status: r.status
+			}))
+		];
+
+		if (role !== 'all') {
+			history = history.filter(item => item.role === role);
+		}
+
+		if (search) {
+			const regex = new RegExp(search, 'i');
+			history = history.filter(item =>
+				regex.test(item.userName) ||
+				regex.test(item.bloodGroup) ||
+				regex.test(item.details) ||
+				regex.test(item.type) ||
+				regex.test(item.status)
+			);
+		}
+
+		if (startDate) {
+			const start = new Date(startDate);
+			history = history.filter(item => new Date(item.date) >= start);
+		}
+
+		if (endDate) {
+			const end = new Date(endDate);
+			end.setHours(23, 59, 59, 999);
+			history = history.filter(item => new Date(item.date) <= end);
+		}
+
+		history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+		return res.json({ history });
+	} catch (err) {
+		console.error('Error fetching admin history:', err);
+		return res.status(500).json({ error: 'Failed to fetch admin history', details: err.message });
+	}
+};
+
 export const getAdminDashboard = async (req, res) => {
 	try {
 		console.log('getAdminDashboard start');
@@ -315,5 +392,6 @@ export default {
 	adminEditAppointment,
 	adminDeleteAppointment,
 	sendEmergencyAlert,
+	getAdminHistory,
 	getAdminDashboard
 };

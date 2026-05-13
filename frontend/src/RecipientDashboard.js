@@ -45,7 +45,7 @@ export default function RecipientDashboard() {
 
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/recipient/requests?userId=${userId}`);
+      const res = await axios.get(`http://localhost:5000/api/recipients/requests?userId=${userId}`);
       setRequests(res.data);
     } catch (err) {
       console.error("Failed to fetch requests");
@@ -99,10 +99,10 @@ export default function RecipientDashboard() {
         patientName: user?.fullName || ""
       };
       if (isEditing) {
-        await axios.put(`http://localhost:5000/api/recipient/request/${isEditing}`, payload);
+        await axios.put(`http://localhost:5000/api/recipients/request/${isEditing}`, payload);
         showToast('Request updated successfully!', 'success');
       } else {
-        await axios.post("http://localhost:5000/api/recipient/request", payload);
+        await axios.post("http://localhost:5000/api/recipients/request", payload);
         showToast('Blood request submitted successfully!', 'success');
       }
       setShowRequestModal(false);
@@ -140,7 +140,7 @@ export default function RecipientDashboard() {
   const confirmDelete = async () => {
     const { id } = confirmDialog;
     try {
-      await axios.delete(`http://localhost:5000/api/recipient/request/${id}`);
+      await axios.delete(`http://localhost:5000/api/recipients/request/${id}`);
       showToast('Request deleted successfully!', 'success');
       fetchRequests();
     } catch (err) {

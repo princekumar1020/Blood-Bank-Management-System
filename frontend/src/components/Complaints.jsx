@@ -2,23 +2,26 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { AlertCircle, MessageSquare, Send, CheckCircle, Clock } from "lucide-react";
 import { useToast } from '../context/ToastContext';
+import API from '../services/api';
 
 const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
-        title: "",
-        description: "",
+        subject: "",
+        message: "",
         category: "general"
     });
+    const [selectedComplaint, setSelectedComplaint] = useState(null);
+    const [showModal, setShowModal] = useState(false);
     const userId = localStorage.getItem("userId");
     const { showToast } = useToast();
 
     useEffect(() => {
         const fetchComplaints = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/complaints?userId=${userId}`);
+                const res = await API.get(`/complaints?userId=${userId}`);
                 setComplaints(res.data || []);
             } catch (err) {
                 console.error("Complaints fetch error", err);
@@ -40,20 +43,43 @@ const Complaints = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post("http://localhost:5000/api/complaints", {
+            await API.post("/complaints", {
                 ...formData,
                 userId
             });
-            setFormData({ title: "", description: "", category: "general" });
+            setFormData({ subject: "", message: "", category: "general" });
             setShowForm(false);
             // Refresh complaints list
-            const res = await axios.get(`http://localhost:5000/api/complaints?userId=${userId}`);
+            const res = await API.get(`/complaints?userId=${userId}`);
             setComplaints(res.data || []);
             showToast("Complaint submitted successfully!", 'success');
         } catch (err) {
             console.error("Complaint submission error", err);
             showToast("Failed to submit complaint", 'error');
         }
+    };
+
+    const handleResolve = async (complaintId) => {
+        try {
+            await API.patch(`/complaints/${complaintId}/resolve`);
+            // Refresh complaints
+            const res = await API.get(`/complaints?userId=${userId}`);
+            setComplaints(res.data || []);
+            showToast("Complaint resolved successfully!", 'success');
+        } catch (err) {
+            console.error("Resolve error", err);
+            showToast("Failed to resolve complaint", 'error');
+        }
+    };
+
+    const handleViewComplaint = (complaint) => {
+        setSelectedComplaint(complaint);
+        setShowModal(true);
+    };
+
+    const closeModal = () => {
+        setShowModal(false);
+        setSelectedComplaint(null);
     };
 
     if (loading) return <div className="p-10 text-center font-bold text-gray-400 animate-pulse">LOADING COMPLAINTS...</div>;
@@ -99,9 +125,9 @@ const Complaints = () => {
                             <label className="block text-sm font-bold text-gray-900 mb-2">Subject</label>
                             <input 
                                 type="text"
-                                name="title"
+                                name="subject"
                                 placeholder="Brief complaint title"
-                                value={formData.title}
+                                value={formData.subject}
                                 onChange={handleInputChange}
                                 required
                                 className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 font-medium text-gray-700 focus:ring-2 focus:ring-red-500 transition-all outline-none placeholder:text-gray-400"
@@ -109,11 +135,11 @@ const Complaints = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">Description</label>
+                            <label className="block text-sm font-bold text-gray-900 mb-2">Message</label>
                             <textarea 
-                                name="description"
+                                name="message"
                                 placeholder="Describe your complaint in detail..."
-                                value={formData.description}
+                                value={formData.message}
                                 onChange={handleInputChange}
                                 required
                                 rows="5"
@@ -150,13 +176,15 @@ const Complaints = () => {
                                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Category</th>
                                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Date Submitted</th>
                                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Status</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Latest Response</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {complaints.length > 0 ? (
                                 complaints.map((complaint) => (
                                     <tr key={complaint._id} className="group hover:bg-gray-50/50 transition-colors">
-                                        <td className="p-6 font-bold text-gray-700">{complaint.title}</td>
+                                        <td className="p-6 font-bold text-gray-700">{complaint.subject || complaint.title}</td>
                                         <td className="p-6">
                                             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-blue-100 text-blue-700">
                                                 {complaint.category}
@@ -167,19 +195,54 @@ const Complaints = () => {
                                         </td>
                                         <td className="p-6">
                                             <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                                                complaint.status === "resolved" ? "bg-green-100 text-green-700" :
-                                                complaint.status === "in-progress" ? "bg-amber-100 text-amber-700" :
+                                                complaint.status === "Pending" ? "bg-amber-100 text-amber-700" :
+                                                complaint.status === "In Review" ? "bg-amber-100 text-amber-700" :
+                                                complaint.status === "Responded" ? "bg-blue-100 text-blue-700" :
+                                                complaint.status === "Reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
+                                                complaint.status === "Closed" ? "bg-green-100 text-green-700" :
                                                 "bg-red-100 text-red-700"
                                             }`}>
-                                                {complaint.status === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                                {complaint.status === "Closed" ? <CheckCircle size={12} /> : <Clock size={12} />}
                                                 {complaint.status}
                                             </span>
+                                        </td>
+                                        <td className="p-6 text-sm text-gray-600 max-w-xs truncate">
+                                            {complaint.adminResponse || 'No response yet'}
+                                        </td>
+                                        <td className="p-6">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleViewComplaint(complaint)}
+                                                    className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
+                                                >
+                                                    <MessageSquare size={14} />
+                                                    View
+                                                </button>
+                                                {complaint.status !== 'Closed' && (
+                                                    <button
+                                                        onClick={() => handleResolve(complaint._id)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full hover:bg-green-200 transition-colors"
+                                                    >
+                                                        <CheckCircle size={14} />
+                                                        Resolve
+                                                    </button>
+                                                )}
+                                                {complaint.status === 'Closed' && (
+                                                    <button
+                                                        onClick={() => handleReopen(complaint._id)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-fuchsia-700 bg-fuchsia-100 rounded-full hover:bg-fuchsia-200 transition-colors"
+                                                    >
+                                                        <AlertCircle size={14} />
+                                                        Reopen
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="4" className="p-20 text-center">
+                                    <td colSpan="6" className="p-20 text-center">
                                         <div className="flex flex-col items-center gap-4">
                                             <AlertCircle size={40} className="text-gray-200" />
                                             <p className="font-bold text-gray-400 uppercase tracking-widest text-xs">No complaints submitted yet</p>
@@ -191,6 +254,55 @@ const Complaints = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Complaint Details Modal */}
+            {showModal && selectedComplaint && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-3xl p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                        <div className="flex justify-between items-start mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800">{selectedComplaint.subject || selectedComplaint.title}</h3>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <AlertCircle size={24} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Category</p>
+                                <p className="text-gray-800 capitalize">{selectedComplaint.category}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Message</p>
+                                <p className="text-gray-800 bg-gray-50 p-4 rounded-xl">{selectedComplaint.message || selectedComplaint.description}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Status</p>
+                                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-tighter ${
+                                    selectedComplaint.status === "Pending" ? "bg-amber-100 text-amber-700" :
+                                    selectedComplaint.status === "In Review" ? "bg-amber-100 text-amber-700" :
+                                    selectedComplaint.status === "Responded" ? "bg-blue-100 text-blue-700" :
+                                    selectedComplaint.status === "Reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
+                                    selectedComplaint.status === "Closed" ? "bg-green-100 text-green-700" :
+                                    "bg-red-100 text-red-700"
+                                }`}>
+                                    {selectedComplaint.status === "Closed" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                    {selectedComplaint.status}
+                                </span>
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Admin Response</p>
+                                <p className="text-gray-800 bg-gray-50 p-4 rounded-xl">{selectedComplaint.adminResponse || 'No response yet'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Submitted On</p>
+                                <p className="text-gray-800">{new Date(selectedComplaint.createdAt).toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

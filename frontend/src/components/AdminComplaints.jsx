@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Search, Trash2, Mail, Eye, X, CheckCircle, Circle } from 'lucide-react';
+import { Search, Mail, Eye, X, CheckCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { adminAPI } from '../services/api';
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
+  'In Review': 'bg-amber-100 text-amber-700',
   Responded: 'bg-blue-100 text-blue-700',
+  Reopened: 'bg-fuchsia-100 text-fuchsia-700',
   Closed: 'bg-green-100 text-green-700'
 };
 
@@ -15,7 +17,7 @@ const AdminComplaints = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [responseText, setResponseText] = useState('');
-  const [statusOption, setStatusOption] = useState('Responded');
+  const [statusOption, setStatusOption] = useState('In Review');
   const [actionLoading, setActionLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const { showToast } = useToast();
@@ -44,7 +46,7 @@ const AdminComplaints = () => {
   const openComplaintDetails = (complaint) => {
     setSelectedComplaint(complaint);
     setResponseText(complaint.adminResponse || '');
-    setStatusOption(complaint.status || 'Pending');
+    setStatusOption(['In Review', 'Responded'].includes(complaint.status) ? complaint.status : 'In Review');
     setDetailsOpen(true);
   };
 
@@ -63,12 +65,17 @@ const AdminComplaints = () => {
 
     setActionLoading(true);
     try {
-      await adminAPI.respondToComplaint(selectedComplaint._id, {
+      const response = await adminAPI.respondToComplaint(selectedComplaint._id, {
         adminResponse: responseText.trim(),
         status: statusOption
       });
-      showToast('Response saved and email sent', 'success');
-      fetchComplaints(searchQuery.trim());
+      const responseData = response.data || response;
+      const emailStatus = responseData.emailStatus || 'failed';
+      showToast(
+        `Response saved. Email ${emailStatus === 'sent' ? 'sent successfully' : 'failed to send'}.`,
+        emailStatus === 'sent' ? 'success' : 'error'
+      );
+      await fetchComplaints(searchQuery.trim());
       closeModal();
     } catch (error) {
       console.error('Error saving response:', error);
@@ -80,33 +87,17 @@ const AdminComplaints = () => {
 
   const handleStatusChange = async (newStatus) => {
     if (!selectedComplaint) return;
+    if (!['In Review', 'Responded'].includes(newStatus)) return;
 
     setActionLoading(true);
     try {
       await adminAPI.updateComplaintStatus(selectedComplaint._id, newStatus);
       showToast('Complaint status updated', 'success');
-      fetchComplaints(searchQuery.trim());
+      await fetchComplaints(searchQuery.trim());
       closeModal();
     } catch (error) {
       console.error('Error updating status:', error);
       showToast('Unable to update status', 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm('Delete this complaint permanently?');
-    if (!confirmed) return;
-
-    setActionLoading(true);
-    try {
-      await adminAPI.deleteComplaint(id);
-      showToast('Complaint deleted successfully', 'success');
-      fetchComplaints(searchQuery.trim());
-    } catch (error) {
-      console.error('Error deleting complaint:', error);
-      showToast('Unable to delete complaint', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -117,7 +108,7 @@ const AdminComplaints = () => {
       acc[complaint.status] = (acc[complaint.status] || 0) + 1;
       return acc;
     },
-    { Pending: 0, Responded: 0, Closed: 0 }
+    { Pending: 0, 'In Review': 0, Responded: 0, Reopened: 0, Closed: 0 }
   );
 
   return (
@@ -127,7 +118,7 @@ const AdminComplaints = () => {
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-red-600 font-black">Admin Dashboard</p>
             <h1 className="text-3xl font-bold text-slate-900 mt-2">Complaint Management</h1>
-            <p className="text-gray-500 mt-2 max-w-2xl">Review submitted complaints, respond directly, update statuses, and keep the blood bank service running smoothly.</p>
+            <p className="text-gray-500 mt-2 max-w-2xl">Review submitted complaints, respond, and keep the complaint lifecycle moving while preventing admin closure.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-auto">
@@ -136,7 +127,7 @@ const AdminComplaints = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 type="text"
-                placeholder="Search by name or subject"
+                placeholder="Search by user, subject or response"
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-sm text-slate-900 shadow-sm focus:border-red-500 focus:outline-none"
               />
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -150,8 +141,8 @@ const AdminComplaints = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 mt-8 sm:grid-cols-3">
-          {['Pending', 'Responded', 'Closed'].map((status) => (
+        <div className="grid grid-cols-1 gap-4 mt-8 sm:grid-cols-5">
+          {['Pending', 'In Review', 'Responded', 'Reopened', 'Closed'].map((status) => (
             <div key={status} className="rounded-3xl border border-gray-100 bg-gray-50 p-5 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">{status}</p>
               <p className="mt-3 text-3xl font-bold text-slate-900">{counts[status] || 0}</p>
@@ -164,7 +155,7 @@ const AdminComplaints = () => {
         <div className="px-6 py-5 border-b border-gray-100 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">All Complaints</h2>
-            <p className="text-sm text-gray-500 mt-1">Search, review, respond, close, or delete complaints from users.</p>
+            <p className="text-sm text-gray-500 mt-1">Search, review, and respond to complaint requests without closing them directly.</p>
           </div>
         </div>
 
@@ -184,6 +175,7 @@ const AdminComplaints = () => {
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">User</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Role</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Subject</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Message</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Status</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Created</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Actions</th>
@@ -193,9 +185,10 @@ const AdminComplaints = () => {
                 {complaints.map((complaint) => (
                   <tr key={complaint._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-semibold text-slate-900">{complaint._id.slice(-8)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.userName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.userName || complaint.userEmail || complaint.userId || 'Unknown'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700 capitalize">{complaint.userRole}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.subject}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.subject || complaint.title || 'No subject'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">{complaint.message || complaint.description || 'No message'}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${statusStyles[complaint.status] || 'bg-slate-100 text-slate-700'}`}>
                         {complaint.status}
@@ -208,12 +201,6 @@ const AdminComplaints = () => {
                         className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
                       >
                         <Eye size={14} /> View
-                      </button>
-                      <button
-                        onClick={() => handleDelete(complaint._id)}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
-                      >
-                        <Trash2 size={14} /> Delete
                       </button>
                     </td>
                   </tr>
@@ -230,8 +217,8 @@ const AdminComplaints = () => {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm uppercase tracking-[0.35em] text-red-600 font-black">Complaint details</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900">{selectedComplaint.subject}</h2>
-                <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.userName} ({selectedComplaint.userRole})</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-900">{selectedComplaint.subject || selectedComplaint.title || 'No subject'}</h2>
+                <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.userName || selectedComplaint.userEmail || selectedComplaint.userId || 'Unknown user'} ({selectedComplaint.userRole || 'unknown'})</p>
               </div>
               <button onClick={closeModal} className="rounded-full border border-gray-200 p-3 text-slate-600 transition hover:bg-gray-100">
                 <X size={18} />
@@ -242,14 +229,11 @@ const AdminComplaints = () => {
               <div className="space-y-4 rounded-3xl border border-gray-100 bg-gray-50 p-6">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Complaint message</p>
-                  <p className="mt-3 text-sm leading-7 text-gray-700">{selectedComplaint.message}</p>
+                  <p className="mt-3 text-sm leading-7 text-gray-700">{selectedComplaint.message || selectedComplaint.description || 'No message provided'}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Customer details</p>
-                  <div className="mt-3 space-y-2 text-sm text-gray-700">
-                    <p><span className="font-semibold">Email:</span> {selectedComplaint.userEmail}</p>
-                    <p><span className="font-semibold">Created:</span> {new Date(selectedComplaint.createdAt).toLocaleString()}</p>
-                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Category</p>
+                  <p className="mt-3 text-sm text-gray-700 capitalize">{selectedComplaint.category || 'general'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Admin response</p>
@@ -259,53 +243,53 @@ const AdminComplaints = () => {
 
               <div className="rounded-3xl border border-gray-100 p-6 shadow-sm">
                 <div className="space-y-4">
-                  <label className="block text-sm font-semibold text-gray-700">Status</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['Pending', 'Responded', 'Closed'].map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => setStatusOption(option)}
-                        className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${statusOption === option ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-slate-600 hover:border-red-300'}`}
-                      >
-                        {option}
-                      </button>
-                    ))}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Status</p>
+                    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] mt-3 ${statusStyles[selectedComplaint.status] || 'bg-slate-100 text-slate-700'}`}>
+                      {selectedComplaint.status}
+                    </span>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Response message</label>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Response history</p>
+                    {selectedComplaint.responseHistory?.length ? (
+                      <div className="mt-3 space-y-3">
+                        {selectedComplaint.responseHistory.map((item, index) => (
+                          <div key={index} className="rounded-2xl border border-gray-200 bg-white p-3 text-sm text-gray-700">
+                            <p>{item.message}</p>
+                            <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-gray-400">{new Date(item.createdAt).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-gray-500">No history recorded yet.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Add Response</p>
                     <textarea
                       value={responseText}
                       onChange={(e) => setResponseText(e.target.value)}
-                      rows={6}
-                      className="w-full rounded-3xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-red-500 focus:outline-none"
-                      placeholder="Write your response to the complaint"
+                      placeholder="Type your response here..."
+                      className="mt-3 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm focus:border-red-500 focus:outline-none resize-none"
+                      rows={4}
                     />
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      onClick={handleResponseSubmit}
-                      disabled={actionLoading}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Mail size={16} /> Submit Response
-                    </button>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => handleStatusChange(statusOption)}
-                        disabled={actionLoading}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    <div className="mt-3 flex flex-col gap-3">
+                      <select
+                        value={statusOption}
+                        onChange={(e) => setStatusOption(e.target.value)}
+                        className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm focus:border-red-500 focus:outline-none"
                       >
-                        <CheckCircle size={16} /> Update Status
-                      </button>
+                        <option value="In Review">In Review</option>
+                        <option value="Responded">Responded</option>
+                      </select>
                       <button
-                        onClick={() => handleDelete(selectedComplaint._id)}
-                        disabled={actionLoading}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={handleResponseSubmit}
+                        disabled={actionLoading || !responseText.trim()}
+                        className="inline-flex items-center justify-center rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <Trash2 size={16} /> Delete Complaint
+                        {actionLoading ? 'Sending...' : 'Send Response'}
                       </button>
                     </div>
                   </div>
