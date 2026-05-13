@@ -6,62 +6,25 @@ const ComplaintSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  userName: {
-    type: String,
-    required: false
-  },
-  userRole: {
-    type: String,
-    enum: ['donor', 'recipient', 'admin', 'unknown'],
-    required: false
-  },
-  userEmail: {
-    type: String,
-    required: false
-  },
-  subject: {
-    type: String,
-    required: false,
-    trim: true
-  },
-  message: {
-    type: String,
-    required: false,
-    trim: true
-  },
   category: {
     type: String,
-    default: 'general',
-    trim: true
+    enum: ['general', 'service', 'staff', 'facility', 'other'],
+    required: true,
+    default: 'general'
   },
-  adminResponse: {
+  title: {
     type: String,
-    default: ''
+    required: true
   },
-  responseHistory: [
-    {
-      message: {
-        type: String,
-        required: true,
-        trim: true
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now
-      }
-    }
-  ],
-  resolvedByUser: {
-    type: Boolean,
-    default: false
+  description: {
+    type: String,
+    required: true
   },
   status: {
     type: String,
-    enum: ['Pending', 'In Review', 'Responded', 'Closed', 'Reopened'],
-    default: 'Pending'
+    enum: ['pending', 'in-progress', 'resolved'],
+    default: 'pending'
   }
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
 export default mongoose.model('Complaint', ComplaintSchema);

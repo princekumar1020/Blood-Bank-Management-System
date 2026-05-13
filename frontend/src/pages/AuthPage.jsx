@@ -91,7 +91,14 @@ export default function AuthPage() {
       }
       try {
         // The password confirmation is only for the frontend, so we can remove it.
-        const { confirmPassword, ...signupData } = formData;
+        const { confirmPassword, name, userType, phoneNumber, ...rest } = formData;
+        const signupData = {
+          ...rest,
+          fullName: name,
+          role: userType,
+          mobileNo: phoneNumber,
+          gender: 'Other' // Since frontend doesn't have a gender field
+        };
         const response = await axios.post(`${API_URL}/api/auth/signup`, signupData);
         console.log('Signup successful:', response.data);
         login(response.data); // Automatically log in the user after signup
