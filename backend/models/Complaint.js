@@ -1,52 +1,18 @@
-<<<<<<< HEAD
-const mongoose = require('mongoose');
-
-const ComplaintSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    category: {
-        type: String,
-        required: true
-    },
-    subject: {
-        type: String,
-        required: true
-    },
-    description: {
-        type: String,
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ['Pending', 'Resolved', 'In Progress'],
-        default: 'Pending'
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-module.exports = mongoose.model('Complaint', ComplaintSchema);
-=======
 import mongoose from 'mongoose';
 
 const ComplaintSchema = new mongoose.Schema({
-  userId: {
+  // Tumhare HEAD wale original names
+  user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
   category: {
     type: String,
-    enum: ['general', 'service', 'staff', 'facility', 'other'],
     required: true,
     default: 'general'
   },
-  title: {
+  subject: {
     type: String,
     required: true
   },
@@ -56,9 +22,10 @@ const ComplaintSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'in-progress', 'resolved', 'reopened'],
-    default: 'pending'
+    enum: ['Pending', 'In Progress', 'Resolved', 'Reopened'],
+    default: 'Pending'
   },
+  // Priyanshu ke advanced features
   adminResponse: {
     type: String,
     default: null
@@ -70,12 +37,10 @@ const ComplaintSchema = new mongoose.Schema({
       default: Date.now
     },
     status: {
-      type: String,
-      enum: ['pending', 'in-progress', 'resolved', 'reopened'],
-      default: 'pending'
+      type: String
     }
   }]
 }, { timestamps: true });
 
+// YAHAN FIX HAI: `export default` use kiya hai `module.exports` ki jagah
 export default mongoose.model('Complaint', ComplaintSchema);
->>>>>>> origin/priyanshu

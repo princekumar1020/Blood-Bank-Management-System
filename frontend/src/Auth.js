@@ -174,7 +174,7 @@ export default function Auth() {
     }
   }, [isLogin]);
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       // Use original formData to include potential leading/trailing spaces if the user intended them
@@ -182,23 +182,20 @@ export default function Auth() {
         ...formData,
         confirmPassword: formData.confirmPassword || undefined
       };
-      // Direct admin dashboard logic
-<<<<<<< HEAD
-      if (isLogin && submissionData.email === 'admin123@gmail.com' && submissionData.password === 'Admin@123') {
+      
+      // Direct admin dashboard logic (Merged conflict fix safely)
+      if (isLogin && submissionData.email === 'admin123@gmail.com' && (submissionData.password === 'Admin@123' || submissionData.password === 'Admin@123456')) {
         const res = await axios.post("http://localhost:5000/api/auth/login", {
           email: submissionData.email,
           password: submissionData.password
         });
         localStorage.setItem("token", res.data.token);
         if (res.data.userId) localStorage.setItem("userId", res.data.userId);
-        alert('Logged in as admin');
-=======
-      if (isLogin && trimmedFormData.email === 'admin123@gmail.com' && trimmedFormData.password === 'Admin@123456') {
         showToast('Logged in as admin', 'success');
->>>>>>> origin/priyanshu
         navigate('/admin-dashboard', { replace: true });
         return;
       }
+      
       if (isLogin) {
         const res = await axios.post("http://localhost:5000/api/auth/login", {
           email: submissionData.email,
@@ -243,13 +240,10 @@ export default function Auth() {
           showToast("Please enter a valid 10-digit mobile number.", 'warning');
           return;
         }
-<<<<<<< HEAD
+        
+        // Merged signup conflict safely
         const res = await axios.post("http://localhost:5000/api/auth/signup", submissionData);
-        alert("Registered successfully! Please login to continue.");
-=======
-        const res = await axios.post("http://localhost:5000/api/auth/signup", trimmedFormData);
         showToast("Registered successfully! Please login to continue.", 'success');
->>>>>>> origin/priyanshu
         setIsLogin(true);
         // Reset sensitive fields
         setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
