@@ -1,9 +1,9 @@
-const express = require('express');
-const router = express.Router();
-const User = require('../models/User');
-const authMiddleware = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+import express from 'express';
+import User from '../models/User.js';
+import authMiddleware from '../middleware/authMiddleware.js';
+import upload from '../middleware/uploadMiddleware.js';
 
+const router = express.Router();
 // Get current user profile
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
@@ -73,5 +73,4 @@ router.put('/switch-role', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error switching role', error });
   }
 });
-
-module.exports = router;
+export default router;

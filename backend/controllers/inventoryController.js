@@ -1,7 +1,6 @@
-const Inventory = require('../models/Inventory');
-
+import Inventory from '../models/Inventory.js';
 // Get inventory summary for all blood groups
-exports.getInventorySummary = async (req, res) => {
+export const getInventorySummary = async (req, res) => {
   try {
     const inventory = await Inventory.find({});
     // Calculate stats
@@ -22,7 +21,7 @@ exports.getInventorySummary = async (req, res) => {
 };
 
 // Add stock to a blood group
-exports.addStock = async (req, res) => {
+export const addStock = async (req, res) => {
   try {
     let { bloodGroup, units, expiryDate } = req.body;
     if (!bloodGroup || !units) {
@@ -51,4 +50,9 @@ exports.addStock = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to add stock', details: err.message });
   }
+};
+
+export default {
+  getInventorySummary,
+  addStock
 };

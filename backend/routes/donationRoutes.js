@@ -1,7 +1,19 @@
-const express = require('express');
+import express from 'express';
+import DonationRequest from '../models/DonationRequest.js';
+import authMiddleware from '../middleware/authMiddleware.js';
+
 const router = express.Router();
-const DonationRequest = require('../models/DonationRequest');
-const authMiddleware = require('../middleware/authMiddleware');
+
+// Get all donations (for admin dashboard)
+router.get('/', async (req, res) => {
+  try {
+    const donations = await DonationRequest.find().populate('donor', 'name email bloodGroup').sort({ createdAt: -1 });
+    res.json(donations);
+  } catch (error) {
+    console.error('Error fetching donations:', error);
+    res.status(500).json({ message: 'Error fetching donations', error });
+  }
+});
 
 // Get all requests for a donor
 router.get('/my-requests', authMiddleware, async (req, res) => {
@@ -41,6 +53,29 @@ router.post('/request', authMiddleware, async (req, res) => {
   }
 });
 
+// Create donation (for admin)
+router.post('/create', async (req, res) => {
+  try {
+    const { bloodType, quantity, type, location, adminNotes, status, donor } = req.body;
+
+    const newRequest = new DonationRequest({
+      donor,
+      bloodType,
+      quantity: quantity || 450,
+      type: type || 'Donation',
+      location: location || 'Default Center',
+      adminNotes: adminNotes || '',
+      status: status || 'Pending'
+    });
+
+    await newRequest.save();
+    res.status(201).json(newRequest);
+  } catch (error) {
+    console.error('Error creating donation:', error);
+    res.status(500).json({ message: 'Error creating donation', error: error.message });
+  }
+});
+
 // Admin: Update request status
 router.put('/:id/status', async (req, res) => {
   try {
@@ -65,6 +100,44 @@ router.put('/:id/status', async (req, res) => {
     res.json(updatedRequest);
   } catch (error) {
     res.status(500).json({ message: 'Error updating request', error });
+  }
+});
+
+// Approve a donation
+router.post('/approve/:id', async (req, res) => {
+  try {
+    const donation = await DonationRequest.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Approved' },
+      { new: true }
+    );
+    
+    if (!donation) {
+      return res.status(404).json({ message: 'Donation not found' });
+    }
+    
+    res.json(donation);
+  } catch (error) {
+    res.status(500).json({ message: 'Error approving donation', error });
+  }
+});
+
+// Complete a donation
+router.post('/complete/:id', async (req, res) => {
+  try {
+    const donation = await DonationRequest.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Completed' },
+      { new: true }
+    );
+    
+    if (!donation) {
+      return res.status(404).json({ message: 'Donation not found' });
+    }
+    
+    res.json(donation);
+  } catch (error) {
+    res.status(500).json({ message: 'Error completing donation', error });
   }
 });
 
@@ -96,5 +169,4 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error deleting request', error: error.message });
   }
 });
-
-module.exports = router;
+export default router;

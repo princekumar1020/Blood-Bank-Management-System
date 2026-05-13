@@ -1,10 +1,20 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useToast } from './context/ToastContext';
+import AdminUserHistory from './components/AdminUserHistory';
+import RecipientManagement from './RecipientManagement';
+import Analytics from './components/Analytics';
+
 // --- Admin Requests Management Component ---
 function AdminRequests() {
+  const { showToast } = useToast();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, action: null, data: null });
 
   const fetchRequests = () => {
     setLoading(true);
@@ -13,8 +23,9 @@ function AdminRequests() {
         setRequests(res.data.requests || []);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
         setError('Failed to load requests');
+        showToast('Failed to load requests', 'error');
         setLoading(false);
       });
   };
@@ -25,19 +36,25 @@ function AdminRequests() {
   }, [statusFilter]);
 
   const handleApprove = (id) => {
-    if (!window.confirm('Approve and fulfill this request?')) return;
+    setConfirmDialog({ show: true, id, action: 'approve', data: null });
+  };
+
+  const confirmApprove = () => {
+    const { id } = confirmDialog;
     setActionLoading(l => ({ ...l, [id]: true }));
     axios.post(`http://localhost:5000/api/admin/requests/${id}/approve`)
-      .then(fetchRequests)
-      .catch(err => {
-        // Show backend error message (e.g., Stock not available)
-        alert(
-          err?.response?.data?.error ||
-          err?.response?.data?.message ||
-          'Failed to approve request'
-        );
+      .then(() => {
+        showToast('Request approved and fulfilled successfully!', 'success');
+        fetchRequests();
       })
-      .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
+      .catch(err => {
+        const errorMsg = err?.response?.data?.error || err?.response?.data?.message || 'Failed to approve request';
+        showToast(errorMsg, 'error');
+      })
+      .finally(() => {
+        setActionLoading(l => ({ ...l, [id]: false }));
+        setConfirmDialog({ show: false, id: null, action: null, data: null });
+      });
   };
 
   const handleEdit = (id, oldUnits, oldReason) => {
@@ -46,7 +63,13 @@ function AdminRequests() {
     if (!units) return;
     setActionLoading(l => ({ ...l, [id]: true }));
     axios.put(`http://localhost:5000/api/admin/requests/${id}`, { units, reason })
-      .then(fetchRequests)
+      .then(() => {
+        showToast('Request updated successfully!', 'success');
+        fetchRequests();
+      })
+      .catch(err => {
+        showToast('Failed to update request', 'error');
+      })
       .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
   };
 
@@ -102,21 +125,40 @@ function AdminRequests() {
           </table>
         </div>
       )}
+      
+      {/* Confirmation Dialog */}
+      {confirmDialog.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm">
+            <h3 className="text-lg font-bold mb-2">Confirm Action</h3>
+            <p className="text-gray-600 mb-4">
+              {confirmDialog.action === 'approve' && 'Approve and fulfill this blood request?'}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300" onClick={() => setConfirmDialog({ show: false, id: null, action: null, data: null })}>
+                Cancel
+              </button>
+              <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={confirmApprove}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import RecipientManagement from './RecipientManagement';
-
 // --- Admin Appointments Management Component ---
 function AdminAppointments() {
+  const { showToast } = useToast();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, action: null });
+  const [approveForm, setApproveForm] = useState({ tokenNo: '', timeSlot: '' });
 
   const fetchAppointments = () => {
     setLoading(true);
@@ -125,8 +167,9 @@ function AdminAppointments() {
         setAppointments(res.data.appointments || []);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
         setError('Failed to load appointments');
+        showToast('Failed to load appointments', 'error');
         setLoading(false);
       });
   };
@@ -137,29 +180,41 @@ function AdminAppointments() {
   }, [statusFilter]);
 
   const handleApprove = (id) => {
-    const tokenNo = prompt('Enter token number:');
-    const timeSlot = prompt('Enter time slot (e.g. 10:00-10:30):');
-    if (!tokenNo || !timeSlot) return;
+    setApproveForm({ tokenNo: '', timeSlot: '' });
+    setConfirmDialog({ show: true, id, action: 'approve' });
+  };
+
+  const confirmApproveAction = () => {
+    const { id } = confirmDialog;
+    if (!approveForm.tokenNo || !approveForm.timeSlot) {
+      showToast('Please fill in all fields', 'warning');
+      return;
+    }
     setActionLoading(l => ({ ...l, [id]: true }));
-    axios.post(`http://localhost:5000/api/admin/appointments/${id}/approve`, { tokenNo, timeSlot })
-      .then(fetchAppointments)
-      .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
+    axios.post(`http://localhost:5000/api/admin/appointments/${id}/approve`, approveForm)
+      .then(() => {
+        showToast('Appointment approved successfully!', 'success');
+        fetchAppointments();
+      })
+      .catch(err => {
+        showToast('Failed to approve appointment', 'error');
+      })
+      .finally(() => {
+        setActionLoading(l => ({ ...l, [id]: false }));
+        setConfirmDialog({ show: false, id: null, action: null });
+      });
   };
 
   const handleComplete = (id) => {
-    if (!window.confirm('Mark this appointment as completed?')) return;
-    setActionLoading(l => ({ ...l, [id]: true }));
-    axios.post(`http://localhost:5000/api/admin/appointments/${id}/complete`)
-      .then(fetchAppointments)
-      .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
+    setConfirmDialog({ show: true, id, action: 'complete' });
   };
 
   const handleDelete = (id) => {
-    if (!window.confirm('Delete this appointment?')) return;
-    setActionLoading(l => ({ ...l, [id]: true }));
-    axios.delete(`http://localhost:5000/api/admin/appointments/${id}`)
-      .then(fetchAppointments)
-      .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
+    setConfirmDialog({ show: true, id, action: 'delete' });
+  };
+
+  const handleReject = (id) => {
+    setConfirmDialog({ show: true, id, action: 'reject' });
   };
 
   const handleEdit = (id, oldDate, oldNotes) => {
@@ -168,16 +223,52 @@ function AdminAppointments() {
     if (!date) return;
     setActionLoading(l => ({ ...l, [id]: true }));
     axios.put(`http://localhost:5000/api/admin/appointments/${id}`, { date, notes })
-      .then(fetchAppointments)
+      .then(() => {
+        showToast('Appointment updated successfully!', 'success');
+        fetchAppointments();
+      })
+      .catch(err => {
+        showToast('Failed to update appointment', 'error');
+      })
       .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
   };
 
-  const handleReject = (id) => {
-    if (!window.confirm('Are you sure you want to reject/cancel this appointment?')) return;
+  const executeConfirmedAction = () => {
+    const { id, action } = confirmDialog;
     setActionLoading(l => ({ ...l, [id]: true }));
-    axios.post(`http://localhost:5000/api/admin/appointments/${id}/reject`)
-      .then(fetchAppointments)
-      .finally(() => setActionLoading(l => ({ ...l, [id]: false })));
+
+    let apiCall;
+    let successMessage = '';
+
+    switch (action) {
+      case 'complete':
+        apiCall = axios.post(`http://localhost:5000/api/admin/appointments/${id}/complete`);
+        successMessage = 'Appointment marked as completed!';
+        break;
+      case 'delete':
+        apiCall = axios.delete(`http://localhost:5000/api/admin/appointments/${id}`);
+        successMessage = 'Appointment deleted!';
+        break;
+      case 'reject':
+        apiCall = axios.post(`http://localhost:5000/api/admin/appointments/${id}/reject`);
+        successMessage = 'Appointment rejected!';
+        break;
+      default:
+        return;
+    }
+
+    apiCall
+      .then(() => {
+        showToast(successMessage, 'success');
+        fetchAppointments();
+      })
+      .catch(err => {
+        showToast(`Failed to ${action} appointment`, 'error');
+      })
+      .finally(() => {
+        setActionLoading(l => ({ ...l, [id]: false }));
+        setConfirmDialog({ show: false, id: null, action: null });
+      });
   };
 
   return (
@@ -236,6 +327,67 @@ function AdminAppointments() {
           </table>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      {confirmDialog.show && confirmDialog.action === 'approve' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm w-96">
+            <h3 className="text-lg font-bold mb-4">Approve Appointment</h3>
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Token Number</label>
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2"
+                  value={approveForm.tokenNo}
+                  onChange={e => setApproveForm({ ...approveForm, tokenNo: e.target.value })}
+                  placeholder="e.g., T001"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Time Slot</label>
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2"
+                  value={approveForm.timeSlot}
+                  onChange={e => setApproveForm({ ...approveForm, timeSlot: e.target.value })}
+                  placeholder="e.g., 10:00-10:30"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300" onClick={() => setConfirmDialog({ show: false, id: null, action: null })}>
+                Cancel
+              </button>
+              <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={confirmApproveAction}>
+                Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generic Confirmation Dialog */}
+      {confirmDialog.show && ['complete', 'delete', 'reject'].includes(confirmDialog.action) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm">
+            <h3 className="text-lg font-bold mb-2">Confirm Action</h3>
+            <p className="text-gray-600 mb-4">
+              {confirmDialog.action === 'complete' && 'Mark this appointment as completed?'}
+              {confirmDialog.action === 'delete' && 'Delete this appointment?'}
+              {confirmDialog.action === 'reject' && 'Reject/cancel this appointment?'}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300" onClick={() => setConfirmDialog({ show: false, id: null, action: null })}>
+                Cancel
+              </button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={executeConfirmedAction}>
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -246,6 +398,7 @@ const sidebarLinks = [
   { label: 'Recipients', icon: '🤝' },
   { label: 'Appointments', icon: '📅' },
   { label: 'Requests', icon: '📨' },
+  { label: 'Complaints', icon: '📋' },
   { label: 'User History', icon: '📜' },
   { label: 'Inventory', icon: '📦' },
   { label: 'Alerts', icon: '⚠️' },
@@ -269,6 +422,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSidebar, setActiveSidebar] = useState('Dashboard');
+  const [alertBloodGroup, setAlertBloodGroup] = useState('A+');
+  const [alertMessage, setAlertMessage] = useState('Urgent blood needed for patients in critical condition. Please donate if you can.');
+  const [alertLoading, setAlertLoading] = useState(false);
+  const [alertSummary, setAlertSummary] = useState(null);
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   useEffect(() => {
     setLoading(true);
@@ -290,6 +449,34 @@ export default function AdminDashboard() {
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const inventory = bloodGroups.map(bg => data?.bloodInventory?.[bg] || 0);
   const trend = data?.trend || [];
+
+  const handleSendEmergencyAlert = async () => {
+    if (!alertMessage.trim()) {
+      showToast('Please enter an emergency message before sending.', 'warning');
+      return;
+    }
+    setAlertLoading(true);
+    setAlertSummary(null);
+    try {
+      const res = await axios.post('http://localhost:5000/api/admin/alerts', {
+        bloodGroup: alertBloodGroup,
+        message: alertMessage.trim()
+      });
+      if (res.data?.count > 0) {
+        showToast(`Emergency alert sent to ${res.data.count} eligible donor(s).`, 'success');
+        setAlertSummary(`Alert delivered to ${res.data.count} eligible donor(s).`);
+      } else {
+        showToast(res.data?.message || 'No eligible donors found for this blood group.', 'info');
+        setAlertSummary(res.data?.message || 'No eligible donors were found.');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to send emergency alert.';
+      showToast(errorMsg, 'error');
+      setAlertSummary(errorMsg);
+    } finally {
+      setAlertLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -313,7 +500,9 @@ export default function AdminDashboard() {
                   if (link.label === 'Donors') {
                     window.location.href = '/donor-management';
                   }
-                  // Optionally, handle navigation for Recipients if you want a separate route
+                  if (link.label === 'Complaints') {
+                    window.location.href = '/admin-dashboard/complaints';
+                  }
                 }}
               >
                 <span>{link.icon}</span> {link.label}
@@ -332,6 +521,7 @@ export default function AdminDashboard() {
                 {activeSidebar === 'Dashboard' && 'Overview of blood bank operations and statistics'}
                 {activeSidebar === 'Donors' && 'List of all registered donors'}
                 {activeSidebar === 'Recipients' && 'List of all registered recipients'}
+                {activeSidebar === 'Complaints' && 'Review and manage user complaints'}
                 {activeSidebar === 'User History' && 'User activity and donation/request history'}
                 {activeSidebar === 'Inventory' && 'Current blood inventory by type'}
                 {activeSidebar === 'Alerts' && 'Pending or urgent blood requests'}
@@ -340,6 +530,12 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center gap-4">
               <span className="text-gray-700 font-semibold">Admin Dashboard</span>
+              <button
+                onClick={() => navigate('/admin-dashboard/complaints')}
+                className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+              >
+                Complaints
+              </button>
               <button className="text-[#e20000] font-bold hover:underline">Logout</button>
             </div>
           </div>
@@ -424,8 +620,64 @@ export default function AdminDashboard() {
           {activeSidebar === 'Recipients' && <RecipientManagement />}
           {activeSidebar === 'Appointments' && <AdminAppointments />}
           {activeSidebar === 'Requests' && <AdminRequests />}
+          {activeSidebar === 'User History' && <AdminUserHistory />}
+          {activeSidebar === 'Analytics' && <Analytics />}
           {/* Placeholder content for other sidebar options */}
-          {!["Dashboard","Recipients","Appointments","Requests"].includes(activeSidebar) && (
+          {activeSidebar === 'Alerts' && (
+            <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Emergency Blood Alert</h2>
+                <p className="text-gray-500 mt-2">Send an urgent email to donors eligible to donate again (last donation 30+ days ago). Only donors with the selected blood group will receive this alert.</p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 mb-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Blood Group</label>
+                  <select
+                    value={alertBloodGroup}
+                    onChange={e => setAlertBloodGroup(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                  >
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                      <option key={bg} value={bg}>{bg}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                  <input
+                    type="text"
+                    value={`Urgent Blood Needed: ${alertBloodGroup}`}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-700"
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                <textarea
+                  value={alertMessage}
+                  onChange={e => setAlertMessage(e.target.value)}
+                  rows={6}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-red-500"
+                  placeholder="Enter the emergency alert message to send to eligible donors..."
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSendEmergencyAlert}
+                disabled={alertLoading}
+                className={`inline-flex items-center justify-center rounded-lg px-6 py-3 font-semibold text-white ${alertLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+              >
+                {alertLoading ? 'Sending alert...' : 'Send Emergency Alert'}
+              </button>
+              {alertSummary && (
+                <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                  {alertSummary}
+                </div>
+              )}
+            </div>
+          )}
+          {!["Dashboard","Recipients","Appointments","Requests","Alerts","User History","Analytics"].includes(activeSidebar) && (
             <div className="bg-white rounded-xl p-8 border border-gray-100 text-gray-500 text-center text-lg shadow-sm">
               Feature coming soon: {activeSidebar}
             </div>

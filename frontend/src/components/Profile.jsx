@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User, Phone, Repeat } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 const Profile = ({ onRoleSwitch }) => {
     const [user, setUser] = useState({
@@ -75,12 +76,12 @@ const Profile = ({ onRoleSwitch }) => {
                 }
                 setEdit(false);
                 setImageFile(null);
-                alert("Profile changes saved successfully in MongoDB Atlas!");
+                showToast("Profile changes saved successfully!", 'success');
             }
         } catch (err) {
             console.error('Error updating donor profile:', err.response || err);
             const errorMessage = err.response?.data?.message || err.message || "Unknown error";
-            alert(`Failed to save changes: ${errorMessage}. Please check if the image is too large or server is down.`);
+            showToast(`Failed to save changes: ${errorMessage}. Please check if the image is too large or server is down.`, 'error');
             setEdit(false);
         }
     };
@@ -146,7 +147,7 @@ const Profile = ({ onRoleSwitch }) => {
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
                                 user.role === 'donor' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-600 border-blue-100'
                             }`}>
-                                {user.role}
+                                {user.role || 'donor'}
                             </span>
                         </div>
                     </div>

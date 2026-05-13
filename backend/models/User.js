@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const UserSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   role: { type: String, enum: ['donor', 'recipient', 'admin'], required: true },
@@ -38,5 +37,4 @@ const UserSchema = new mongoose.Schema({
     default: ''
   }
 }, { timestamps: true });
-
-module.exports = mongoose.model('User', UserSchema);
+export default mongoose.model('User', UserSchema);

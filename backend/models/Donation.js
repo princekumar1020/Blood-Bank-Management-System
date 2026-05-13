@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const DonationSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   date: { type: Date, required: true },
@@ -7,5 +6,4 @@ const DonationSchema = new mongoose.Schema({
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
   // Add more fields as needed
 }, { timestamps: true });
-
-module.exports = mongoose.model('Donation', DonationSchema);
+export default mongoose.model('Donation', DonationSchema);

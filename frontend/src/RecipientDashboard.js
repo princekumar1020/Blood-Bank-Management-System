@@ -5,6 +5,9 @@ import {
   TrendingUp, Heart, User, Edit, Trash2, Plus, X, Save, Clock, CheckCircle, Info 
 } from "lucide-react";
 import MyProfile from "./MyProfile";
+import RecipientHistory from "./components/RecipientHistory";
+import Complaints from "./components/Complaints";
+import CommunityAlerts from "./components/CommunityAlerts";
 
 const sidebarLinks = [
   { label: "Dashboard", icon: <Droplet className="w-5 h-5" /> },
@@ -94,8 +97,10 @@ export default function RecipientDashboard() {
       };
       if (isEditing) {
         await axios.put(`http://localhost:5000/api/recipient/request/${isEditing}`, payload);
+        alert("Blood request updated successfully!");
       } else {
         await axios.post("http://localhost:5000/api/recipient/request", payload);
+        alert("Blood request submitted successfully!");
       }
       setShowRequestModal(false);
       setIsEditing(null);
@@ -376,8 +381,11 @@ export default function RecipientDashboard() {
         {activePage === "Dashboard" && renderDashboard()}
         {activePage === "Profile" && <MyProfile />}
         {activePage === "Request blood" && renderRequestBlood()}
+        {activePage === "Recipient History" && <RecipientHistory />}
+        {activePage === "Complaints" && <Complaints />}
+        {activePage === "Community Alerts" && <CommunityAlerts />}
         
-        {activePage !== "Dashboard" && activePage !== "Profile" && activePage !== "Request blood" && (
+        {activePage !== "Dashboard" && activePage !== "Profile" && activePage !== "Request blood" && activePage !== "Recipient History" && activePage !== "Complaints" && activePage !== "Community Alerts" && (
            <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">
                <div className="p-6 bg-white rounded-full shadow-sm border border-gray-100">
                   <Heart className="w-12 h-12 text-[#fff1f2] fill-[#fff1f2]" />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useToast } from '../context/ToastContext';
 import { 
   Users, 
   Droplet, 
@@ -30,6 +31,8 @@ const DonorDashboard = () => {
         }
     };
 
+    const { showToast } = useToast();
+
     useEffect(() => {
         fetchRequests();
     }, []);
@@ -38,11 +41,12 @@ const DonorDashboard = () => {
         if (window.confirm('Are you sure you want to delete this pending request?')) {
             try {
                 await axios.delete(`http://localhost:5000/api/donation/${id}`);
+                showToast('Request deleted successfully!', 'success');
                 // Refresh the list
                 fetchRequests();
             } catch (err) {
                 console.error('Error deleting request:', err);
-                alert('Failed to delete request. Please try again.');
+                showToast('Failed to delete request. Please try again.', 'error');
             }
         }
     };

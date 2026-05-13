@@ -1,9 +1,10 @@
-// controllers/donorController.js
-const User = require('../models/User');
-const Donation = require('../models/Donation');
-const Appointment = require('../models/Appointment');
+import User from '../models/User.js';
+import Donation from '../models/Donation.js';
+import Appointment from '../models/Appointment.js';
+import * as inventoryUtils from './inventoryUtils.js';
+import * as inventoryController from './inventoryController.js';
 
-exports.deleteAppointment = async (req, res) => {
+export const deleteAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const appointment = await Appointment.findById(appointmentId);
@@ -20,7 +21,7 @@ exports.deleteAppointment = async (req, res) => {
   }
 };
 
-exports.editAppointment = async (req, res) => {
+export const editAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const { date, notes } = req.body;
@@ -40,7 +41,7 @@ exports.editAppointment = async (req, res) => {
   }
 };
 
-exports.approveAppointment = async (req, res) => {
+export const approveAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const { tokenNo, timeSlot } = req.body;
@@ -61,8 +62,7 @@ exports.approveAppointment = async (req, res) => {
   }
 };
 
-const inventoryUtils = require('./inventoryUtils');
-exports.completeAppointment = async (req, res) => {
+export const completeAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const appointment = await Appointment.findById(appointmentId).populate('user');
@@ -75,8 +75,7 @@ exports.completeAppointment = async (req, res) => {
     appointment.status = 'completed';
     await appointment.save();
     await Donation.create({ user: appointment.user._id, date: appointment.date, status: 'completed', appointmentId });
-    // Increase inventory for donor's blood group by 1 unit
-    await require('./inventoryController').addStock({
+    await inventoryController.addStock({
       body: {
         bloodGroup: appointment.user.bloodGroup,
         units: 1
@@ -88,7 +87,7 @@ exports.completeAppointment = async (req, res) => {
   }
 };
 
-exports.getLatestAppointment = async (req, res) => {
+export const getLatestAppointment = async (req, res) => {
   try {
     const userId = req.query.userId;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
@@ -99,7 +98,7 @@ exports.getLatestAppointment = async (req, res) => {
   }
 };
 
-exports.getDashboard = async (req, res) => {
+export const getDashboard = async (req, res) => {
   try {
     const userId = req.query.userId;
     const user = await User.findById(userId);
@@ -127,7 +126,7 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
-exports.scheduleAppointment = async (req, res) => {
+export const scheduleAppointment = async (req, res) => {
   try {
     const { userId, date, notes, bloodGroup } = req.body;
     if (!userId || !date || !bloodGroup) {
@@ -176,7 +175,7 @@ exports.scheduleAppointment = async (req, res) => {
   }
 };
 
-exports.getAppointments = async (req, res) => {
+export const getAppointments = async (req, res) => {
   try {
     const userId = req.query.userId;
     const appointments = await Appointment.find({ user: userId });
@@ -184,4 +183,15 @@ exports.getAppointments = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+};
+
+export default {
+  deleteAppointment,
+  editAppointment,
+  approveAppointment,
+  completeAppointment,
+  getLatestAppointment,
+  getDashboard,
+  scheduleAppointment,
+  getAppointments
 };

@@ -1,16 +1,53 @@
-const express = require('express');
+import express from 'express';
+import BloodRequest from '../models/BloodRequest.js';
+import Request from '../models/Request.js';
+import authMiddleware from '../middleware/authMiddleware.js';
+
 const router = express.Router();
-const BloodRequest = require('../models/BloodRequest');
-const authMiddleware = require('../middleware/authMiddleware');
+
+// @route   GET api/requests/history
+// @desc    Get all blood requests history (No Auth Required)
+// @access  Public
+router.get('/history', async (req, res) => {
+  try {
+    const requests = await Request.find().sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/requests/add
+// @desc    Create a new blood request (No Auth Required)
+// @access  Public
+router.post('/add', async (req, res) => {
+  const { bloodGroup, units, reason } = req.body;
+  try {
+    const newRequest = new Request({
+      bloodGroup,
+      units,
+      reason
+    });
+    await newRequest.save();
+    res.status(201).json({ message: "Blood Request Saved Successfully! ✅", request: newRequest });
+  } catch (err) {
+    console.error(err.message);
+    res.status(400).json({ message: "Error saving request", error: err.message });
+  }
+});
 
 // @route   GET api/requests
 // @desc    Get all blood requests
 // @access  Private
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    // Populate the requester's name and email from the User model
-    const requests = await BloodRequest.find().populate('requester', 'name email').sort({ createdAt: -1 });
-    res.json(requests);
+    const requests = await BloodRequest.find().populate('recipient', 'name email').sort({ createdAt: -1 });
+    const formattedRequests = requests.map((request) => ({
+      ...request.toObject(),
+      requester: request.recipient,
+    }));
+    res.json(formattedRequests);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -27,17 +64,19 @@ router.post('/', authMiddleware, async (req, res) => {
       patientName,
       bloodGroup,
       units,
-      requester: req.user.id, // Get user ID from the authenticated token
+      recipient: req.user.id,
+      requestFor: 'self',
+      status: 'pending'
     });
 
     let request = await newRequest.save();
-    // Populate the requester field before sending the response to be consistent with the GET route
-    request = await request.populate('requester', 'name email');
-    res.status(201).json(request);
+    request = await request.populate('recipient', 'name email');
+    const responseRequest = { ...request.toObject(), requester: request.recipient };
+    res.status(201).json(responseRequest);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-module.exports = router;
+export default router;

@@ -3,6 +3,7 @@ import axios from "axios";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Lock, Phone, Droplet, Moon, Sun, Eye, EyeOff } from "lucide-react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
+import { useToast } from "./context/ToastContext";
 
 const Navbar = () => {
   const [isDark, setIsDark] = useState(false);
@@ -152,6 +153,7 @@ export default function Auth() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -181,6 +183,7 @@ export default function Auth() {
         confirmPassword: formData.confirmPassword || undefined
       };
       // Direct admin dashboard logic
+<<<<<<< HEAD
       if (isLogin && submissionData.email === 'admin123@gmail.com' && submissionData.password === 'Admin@123') {
         const res = await axios.post("http://localhost:5000/api/auth/login", {
           email: submissionData.email,
@@ -189,6 +192,10 @@ export default function Auth() {
         localStorage.setItem("token", res.data.token);
         if (res.data.userId) localStorage.setItem("userId", res.data.userId);
         alert('Logged in as admin');
+=======
+      if (isLogin && trimmedFormData.email === 'admin123@gmail.com' && trimmedFormData.password === 'Admin@123456') {
+        showToast('Logged in as admin', 'success');
+>>>>>>> origin/priyanshu
         navigate('/admin-dashboard', { replace: true });
         return;
       }
@@ -199,7 +206,7 @@ export default function Auth() {
         });
         localStorage.setItem("token", res.data.token);
         if (res.data.userId) localStorage.setItem("userId", res.data.userId);
-        alert(`Logged in as ${res.data.role}`);
+        showToast(`Logged in as ${res.data.role}`, 'success');
         if (res.data.role === 'recipient') {
           navigate("/recipient-dashboard");
         } else if (res.data.role === 'donor') {
@@ -214,25 +221,35 @@ export default function Auth() {
         // Frontend Validations
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-          return alert("Please enter a valid email address.");
+          showToast("Please enter a valid email address.", 'warning');
+          return;
         }
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
         if (!passwordRegex.test(password)) {
-          return alert("Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+          showToast("Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.", 'warning');
+          return;
         }
         if (password !== confirmPassword) {
-          return alert("Passwords do not match");
+          showToast("Passwords do not match", 'warning');
+          return;
         }
         const ageNum = parseInt(age, 10);
         if (role === 'donor' && (ageNum < 18 || ageNum > 65)) {
-          return alert("Donors must be between 18 and 65 years old.");
+          showToast("Donors must be between 18 and 65 years old.", 'warning');
+          return;
         }
         const mobileRegex = /^[0-9]{10}$/;
         if (!mobileRegex.test(mobileNo)) {
-          return alert("Please enter a valid 10-digit mobile number.");
+          showToast("Please enter a valid 10-digit mobile number.", 'warning');
+          return;
         }
+<<<<<<< HEAD
         const res = await axios.post("http://localhost:5000/api/auth/signup", submissionData);
         alert("Registered successfully! Please login to continue.");
+=======
+        const res = await axios.post("http://localhost:5000/api/auth/signup", trimmedFormData);
+        showToast("Registered successfully! Please login to continue.", 'success');
+>>>>>>> origin/priyanshu
         setIsLogin(true);
         // Reset sensitive fields
         setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
@@ -240,13 +257,13 @@ export default function Auth() {
     } catch (err) {
       if (err.response && err.response.data && err.response.data.error) {
         if (err.response.data.error === "User does not exist") {
-             alert("User does not exist. Please sign up.");
+             showToast("User does not exist. Please sign up.", 'error');
              navigate("/auth?mode=signup");
         } else {
-            alert(err.response.data.error);
+            showToast(err.response.data.error, 'error');
         }
       } else {
-        alert(err.response?.data?.message || "An error occurred. Please try again.");
+        showToast(err.response?.data?.message || "An error occurred. Please try again.", 'error');
       }
     }
   };

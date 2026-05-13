@@ -1,6 +1,10 @@
-const inventoryUtils = require('./inventoryUtils');
+import inventoryUtils from './inventoryUtils.js';
+import BloodRequest from '../models/BloodRequest.js';
+import User from '../models/User.js';
+import { sendEmail } from '../config/emailConfig.js';
+
 // Mark request as completed and decrease inventory
-exports.completeRequest = async (req, res) => {
+export const completeRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const request = await BloodRequest.findById(id);
@@ -17,10 +21,7 @@ exports.completeRequest = async (req, res) => {
     res.status(500).json({ error: 'Server Error' });
   }
 };
-const BloodRequest = require('../models/BloodRequest');
-const User = require('../models/User');
-
-exports.createRequest = async (req, res) => {
+export const createRequest = async (req, res) => {
   try {
     const { userId, requestFor, bloodGroup, units, patientName, reason } = req.body;
     
@@ -46,14 +47,27 @@ exports.createRequest = async (req, res) => {
     });
 
     await newRequest.save();
+
+    // Send email notification for new blood request
+    if (user.email) {
+      try {
+        const subject = 'Blood Request Submitted Successfully';
+        const text = `Hello ${user.fullName},\n\nYour blood request for ${units} unit(s) of ${finalBloodGroup} blood has been submitted successfully. We will process your request soon.\n\nPatient: ${finalPatientName}\nReason: ${reason}\n\nThank you for using our Blood Bank service.`;
+        const html = `<p>Hello ${user.fullName},</p><p>Your blood request for <strong>${units}</strong> unit(s) of <strong>${finalBloodGroup}</strong> blood has been submitted successfully. We will process your request soon.</p><p><strong>Patient:</strong> ${finalPatientName}<br><strong>Reason:</strong> ${reason}</p><p>Thank you for using our Blood Bank service.</p>`;
+        const result = await sendEmail(user.email, subject, text, html);
+        console.log('Blood request creation email sent:', result);
+      } catch (emailError) {
+        console.error('Failed to send blood request creation email:', emailError);
+      }
+    }
+
     res.status(201).json(newRequest);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server Error' });
   }
 };
-
-exports.getRequests = async (req, res) => {
+export const getRequests = async (req, res) => {
   try {
     const { userId } = req.query;
     const requests = await BloodRequest.find({ recipient: userId }).sort({ createdAt: -1 });
@@ -62,8 +76,7 @@ exports.getRequests = async (req, res) => {
     res.status(500).json({ error: 'Server Error' });
   }
 };
-
-exports.updateRequest = async (req, res) => {
+export const updateRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { requestFor, bloodGroup, units, patientName, reason } = req.body;
@@ -97,8 +110,7 @@ exports.updateRequest = async (req, res) => {
     res.status(500).json({ error: 'Server Error' });
   }
 };
-
-exports.deleteRequest = async (req, res) => {
+export const deleteRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const request = await BloodRequest.findById(id);
@@ -113,4 +125,12 @@ exports.deleteRequest = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server Error' });
   }
+};
+
+export default {
+  completeRequest,
+  createRequest,
+  getRequests,
+  updateRequest,
+  deleteRequest
 };

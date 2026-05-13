@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const AppointmentSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   date: { type: Date, required: true },
@@ -9,5 +8,4 @@ const AppointmentSchema = new mongoose.Schema({
   tokenNo: { type: String },
   timeSlot: { type: String },
 }, { timestamps: true });
-
-module.exports = mongoose.model('Appointment', AppointmentSchema);
+export default mongoose.model('Appointment', AppointmentSchema);

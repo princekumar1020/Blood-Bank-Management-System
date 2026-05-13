@@ -1,5 +1,11 @@
+import bcrypt from 'bcryptjs';
+import BloodRequest from '../models/BloodRequest.js';
+import User from '../models/User.js';
+import Inventory from '../models/Inventory.js';
+import { sendEmail } from '../config/emailConfig.js';
+
 // List all recipients (users with role 'recipient')
-exports.getRecipients = async (req, res) => {
+export const getRecipients = async (req, res) => {
   try {
     const recipients = await User.find({ role: 'recipient' }).select('-password');
     res.json({ recipients });
@@ -9,13 +15,12 @@ exports.getRecipients = async (req, res) => {
 };
 
 // Edit recipient details
-exports.editRecipient = async (req, res) => {
+export const editRecipient = async (req, res) => {
   try {
     const { id } = req.params;
     const { fullName, email, mobileNo, bloodGroup, gender, age, password } = req.body;
     const update = { fullName, email, mobileNo, bloodGroup, gender, age };
     if (password) {
-      const bcrypt = require('bcryptjs');
       update.password = await bcrypt.hash(password, 10);
     }
     const updated = await User.findByIdAndUpdate(id, update, { new: true });
@@ -25,8 +30,25 @@ exports.editRecipient = async (req, res) => {
     res.status(500).json({ error: 'Failed to update recipient', details: err.message });
   }
 };
+
+const requestStatusEmailBody = (recipientName, bloodGroup, units, status, reason, date) => {
+  const formattedDate = date ? new Date(date).toLocaleString() : new Date().toLocaleString();
+  if (status === 'rejected') {
+    return {
+      subject: 'Your blood request has been rejected',
+      text: `Hello ${recipientName},\n\nYour request for ${units} unit(s) of ${bloodGroup} blood has been rejected on ${formattedDate}.\n\nReason: ${reason || 'Not specified'}\n\nThank you for using Blood Bank.`,
+      html: `<p>Hello ${recipientName},</p><p>Your request for <strong>${units}</strong> unit(s) of <strong>${bloodGroup}</strong> blood has been rejected on <strong>${formattedDate}</strong>.</p><p><strong>Reason:</strong> ${reason || 'Not specified'}</p><p>Thank you for using Blood Bank.</p>`
+    };
+  }
+  return {
+    subject: 'Your blood request has been fulfilled',
+    text: `Hello ${recipientName},\n\nYour request for ${units} unit(s) of ${bloodGroup} blood has been fulfilled on ${formattedDate}.\n\nThank you for using Blood Bank.`,
+    html: `<p>Hello ${recipientName},</p><p>Your request for <strong>${units}</strong> unit(s) of <strong>${bloodGroup}</strong> blood has been fulfilled on <strong>${formattedDate}</strong>.</p><p>Thank you for using Blood Bank.</p>`
+  };
+};
+
 // Update a recipient blood request
-exports.updateRequest = async (req, res) => {
+export const updateRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -36,15 +58,39 @@ exports.updateRequest = async (req, res) => {
     for (const key of allowedFields) {
       if (updateData[key] !== undefined) update[key] = updateData[key];
     }
-    const updatedRequest = await BloodRequest.findByIdAndUpdate(id, update, { new: true });
+
+    const request = await BloodRequest.findById(id);
+    if (!request) return res.status(404).json({ error: 'Request not found' });
+    const originalStatus = request.status;
+
+    const updatedRequest = await BloodRequest.findByIdAndUpdate(id, update, { new: true })
+      .populate('recipient', 'fullName email bloodGroup');
     if (!updatedRequest) return res.status(404).json({ error: 'Request not found' });
+
+    if (update.status && update.status !== originalStatus && updatedRequest.recipient?.email) {
+      try {
+        const { subject, text, html } = requestStatusEmailBody(
+          updatedRequest.recipient.fullName,
+          updatedRequest.bloodGroup,
+          updatedRequest.units,
+          update.status,
+          update.reason,
+          updatedRequest.updatedAt
+        );
+        const result = await sendEmail(updatedRequest.recipient.email, subject, text, html);
+        console.log('Request status update email sent:', result);
+      } catch (emailError) {
+        console.error('Failed to send request status email:', emailError);
+      }
+    }
+
     res.json({ success: true, request: updatedRequest });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update recipient request', details: err.message });
   }
 };
 // Add a new recipient request (admin)
-exports.addRequest = async (req, res) => {
+export const addRequest = async (req, res) => {
   try {
     const { fullName, email, mobileNo, bloodGroup, units, reason, requestFor, gender, age, password } = req.body;
     // Basic validation
@@ -56,7 +102,6 @@ exports.addRequest = async (req, res) => {
     }
     // Check for duplicate user by email or mobile
     let user = await User.findOne({ $or: [{ email }, { mobileNo }] });
-    const bcrypt = require('bcryptjs');
     if (user) {
       // If user exists, check if already a recipient
       if (user.role === 'recipient') {
@@ -108,16 +153,27 @@ exports.addRequest = async (req, res) => {
       reason
     });
     await newRequest.save();
+
+    // Send email notification for new blood request
+    if (user.email) {
+      try {
+        const subject = 'Blood Request Submitted Successfully';
+        const text = `Hello ${user.fullName},\n\nYour blood request for ${units} unit(s) of ${reqBloodGroup} blood has been submitted successfully. We will process your request soon.\n\nPatient: ${fullName}\nReason: ${reason}\n\nThank you for using our Blood Bank service.`;
+        const html = `<p>Hello ${user.fullName},</p><p>Your blood request for <strong>${units}</strong> unit(s) of <strong>${reqBloodGroup}</strong> blood has been submitted successfully. We will process your request soon.</p><p><strong>Patient:</strong> ${fullName}<br><strong>Reason:</strong> ${reason}</p><p>Thank you for using our Blood Bank service.</p>`;
+        const result = await sendEmail(user.email, subject, text, html);
+        console.log('Blood request creation email sent:', result);
+      } catch (emailError) {
+        console.error('Failed to send blood request creation email:', emailError);
+      }
+    }
+
     res.json({ success: true, request: newRequest });
   } catch (err) {
     res.status(500).json({ error: 'Failed to add recipient request', details: err.message });
   }
 };
-const BloodRequest = require('../models/BloodRequest');
-const User = require('../models/User');
-
 // Get all recipient requests with stats, search, filter
-exports.getRequests = async (req, res) => {
+export const getRequests = async (req, res) => {
   try {
     const { search = '', urgency = '', status = '' } = req.query;
     const query = {};
@@ -126,18 +182,23 @@ exports.getRequests = async (req, res) => {
     // For urgency, you can add logic if you have an urgency field
     const requests = await BloodRequest.find(query).populate('recipient', 'fullName email mobileNo bloodGroup');
     // For each request, build row data
-    const requestData = requests.map((req, idx) => ({
-      id: req._id,
-      requestId: 'R' + (idx + 1).toString().padStart(3, '0'),
-      recipient: req.recipient.fullName,
-      bloodGroup: req.bloodGroup,
-      contact: { email: req.recipient.email, mobileNo: req.recipient.mobileNo },
-      requestDate: req.createdAt,
-      units: req.units,
-      urgency: req.urgency || 'Normal',
-      status: req.status,
-      requestFor: req.requestFor || 'self',
-    }));
+    const requestData = requests.map((req, idx) => {
+      const recipientName = req.recipient?.fullName || 'Unknown Recipient';
+      const recipientEmail = req.recipient?.email || 'N/A';
+      const recipientMobile = req.recipient?.mobileNo || 'N/A';
+      return {
+        id: req._id,
+        requestId: 'R' + (idx + 1).toString().padStart(3, '0'),
+        recipient: recipientName,
+        bloodGroup: req.bloodGroup,
+        contact: { email: recipientEmail, mobileNo: recipientMobile },
+        requestDate: req.createdAt,
+        units: req.units,
+        urgency: req.urgency || 'Normal',
+        status: req.status,
+        requestFor: req.requestFor || 'self',
+      };
+    });
     // Stats
     const totalRequests = requestData.length;
     const pending = requestData.filter(r => r.status === 'pending').length;
@@ -158,7 +219,7 @@ exports.getRequests = async (req, res) => {
 };
 
 // View a single request
-exports.getRequest = async (req, res) => {
+export const getRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const reqData = await BloodRequest.findById(id).populate('recipient', 'fullName email mobileNo bloodGroup');
@@ -169,12 +230,44 @@ exports.getRequest = async (req, res) => {
   }
 };
 
-// Approve/Fulfill a request with stock check
-const Inventory = require('../models/Inventory');
-exports.approveRequest = async (req, res) => {
+// Reject a request
+export const rejectRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const reqData = await BloodRequest.findById(id);
+    const reqData = await BloodRequest.findById(id).populate('recipient', 'fullName email bloodGroup');
+    if (!reqData) return res.status(404).json({ error: 'Request not found' });
+
+    if (reqData.status === 'fulfilled' || reqData.status === 'rejected') {
+      return res.status(400).json({ error: 'Cannot reject fulfilled or already rejected requests.' });
+    }
+
+    reqData.status = 'rejected';
+    await reqData.save();
+
+    if (reqData.recipient?.email) {
+      try {
+        const formattedDate = new Date().toLocaleString();
+        const subject = 'Your blood request has been rejected';
+        const text = `Hello ${reqData.recipient.fullName},\n\nYour request for ${reqData.units} unit(s) of ${reqData.bloodGroup} blood has been rejected on ${formattedDate}.\n\nReason: ${req.body.reason || 'Not specified'}\n\nThank you for using Blood Bank.`;
+        const html = `<p>Hello ${reqData.recipient.fullName},</p><p>Your request for <strong>${reqData.units}</strong> unit(s) of <strong>${reqData.bloodGroup}</strong> blood has been rejected on <strong>${formattedDate}</strong>.</p><p><strong>Reason:</strong> ${req.body.reason || 'Not specified'}</p><p>Thank you for using Blood Bank.</p>`;
+        const result = await sendEmail(reqData.recipient.email, subject, text, html);
+        console.log('Request rejection email sent:', result);
+      } catch (emailError) {
+        console.error('Failed to send rejection email:', emailError);
+      }
+    }
+
+    res.json({ success: true, request: reqData });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reject request', details: err.message });
+  }
+};
+
+// Approve/Fulfill a request with stock check
+export const approveRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reqData = await BloodRequest.findById(id).populate('recipient', 'fullName email bloodGroup');
     if (!reqData) return res.status(404).json({ error: 'Request not found' });
 
     // Check stock for requested blood group
@@ -189,6 +282,20 @@ exports.approveRequest = async (req, res) => {
 
     reqData.status = 'fulfilled';
     await reqData.save();
+
+    if (reqData.recipient?.email) {
+      try {
+        const formattedDate = reqData.updatedAt ? new Date(reqData.updatedAt).toLocaleString() : new Date().toLocaleString();
+        const subject = 'Your blood request has been fulfilled';
+        const text = `Hello ${reqData.recipient.fullName},\n\nYour request for ${reqData.units} unit(s) of ${reqData.bloodGroup} blood has been fulfilled on ${formattedDate}.\n\nThank you for using Blood Bank.`;
+        const html = `<p>Hello ${reqData.recipient.fullName},</p><p>Your request for <strong>${reqData.units}</strong> unit(s) of <strong>${reqData.bloodGroup}</strong> blood has been fulfilled on <strong>${formattedDate}</strong>.</p><p>Thank you for using Blood Bank.</p>`;
+        const result = await sendEmail(reqData.recipient.email, subject, text, html);
+        console.log('Request fulfillment email sent:', result);
+      } catch (emailError) {
+        console.error('Failed to send request fulfillment email:', emailError);
+      }
+    }
+
     res.json({ success: true, request: reqData });
   } catch (err) {
     res.status(500).json({ error: 'Failed to approve request', details: err.message });

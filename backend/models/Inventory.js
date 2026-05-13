@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const InventorySchema = new mongoose.Schema({
   bloodGroup: {
     type: String,
@@ -26,5 +25,4 @@ const InventorySchema = new mongoose.Schema({
     default: Date.now
   }
 });
-
-module.exports = mongoose.model('Inventory', InventorySchema);
+export default mongoose.model('Inventory', InventorySchema);

@@ -1,6 +1,9 @@
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
+import User from '../models/User.js';
+import Donation from '../models/Donation.js';
+
 // Add a new donor
-exports.addDonor = async (req, res) => {
+export const addDonor = async (req, res) => {
   try {
     const { fullName, bloodGroup, gender, age, email, mobileNo, password } = req.body;
     if (!fullName || !bloodGroup || !gender || !age || !email || !mobileNo || !password) {
@@ -19,7 +22,7 @@ exports.addDonor = async (req, res) => {
 };
 
 // Edit donor
-exports.editDonor = async (req, res) => {
+export const editDonor = async (req, res) => {
   try {
     const { id } = req.params;
     const { fullName, bloodGroup, gender, age, email, mobileNo } = req.body;
@@ -39,7 +42,7 @@ exports.editDonor = async (req, res) => {
 };
 
 // View donor
-exports.getDonor = async (req, res) => {
+export const getDonor = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findById(id).select('-password');
@@ -49,11 +52,8 @@ exports.getDonor = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch donor', details: err.message });
   }
 };
-const User = require('../models/User');
-const Donation = require('../models/Donation');
-
 // Get all donors with stats, search, filter
-exports.getDonors = async (req, res) => {
+export const getDonors = async (req, res) => {
   try {
     const { search = '', bloodType = '', status = '' } = req.query;
     // Build query
@@ -100,4 +100,11 @@ exports.getDonors = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch donors', details: err.message });
   }
+};
+
+export default {
+  getDonors,
+  addDonor,
+  editDonor,
+  getDonor
 };
