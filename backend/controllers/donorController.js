@@ -91,7 +91,18 @@ export const getLatestAppointment = async (req, res) => {
   try {
     const userId = req.query.userId;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
-    const appointment = await Appointment.findOne({ user: userId }).sort({ date: -1 });
+    
+    // First, look for any active appointment (scheduled or approved)
+    let appointment = await Appointment.findOne({ 
+      user: userId, 
+      status: { $in: ['scheduled', 'approved'] } 
+    }).sort({ createdAt: -1 });
+
+    // If no active appointment, find the most recent one (completed or rejected)
+    if (!appointment) {
+      appointment = await Appointment.findOne({ user: userId }).sort({ createdAt: -1 });
+    }
+    
     res.json({ appointment });
   } catch (err) {
     res.status(500).json({ error: 'Server error', details: err.message });

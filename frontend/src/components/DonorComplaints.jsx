@@ -21,7 +21,7 @@ const DonorComplaints = () => {
   const [showNewModal, setShowNewModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
-  const userId = localStorage.getItem("userId");
+  const userId = sessionStorage.getItem("userId");
   const { showToast } = useToast();
 
   // Form State

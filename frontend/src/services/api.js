@@ -10,7 +10,7 @@ const AdminAPI = axios.create({
 
 // Add auth token to requests
 const addAuthToken = (config) => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

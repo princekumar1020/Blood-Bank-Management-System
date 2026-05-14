@@ -30,7 +30,7 @@ const SubmitComplaint = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const res = await axios.post('http://localhost:5000/api/complaints', formData, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
