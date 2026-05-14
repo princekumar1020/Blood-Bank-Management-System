@@ -32,7 +32,7 @@ export const adminRejectAppointment = async (req, res) => {
         console.log('appointment user email:', appointment.user?.email);
         if (appointment.user?.email) {
             try {
-                const { subject, text, html } = appointmentEmailBody(appointment.user.fullName, appointment.date, appointment.user.bloodGroup, appointment.tokenNo, appointment.timeSlot, 'cancelled');
+                const { subject, text, html } = appointmentEmailBody(appointment.user.fullName, appointment.date, appointment.user.bloodGroup, appointment.tokenNo, appointment.timeSlot, 'rejected');
                 const result = await sendEmail(appointment.user.email, subject, text, html);
                 console.log('Rejection email sent:', result);
             } catch (emailError) {

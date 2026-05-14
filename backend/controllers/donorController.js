@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Donation from '../models/Donation.js';
 import Appointment from '../models/Appointment.js';
+import { sendEmail } from '../config/emailConfig.js';
 import * as inventoryUtils from './inventoryUtils.js';
 import * as inventoryController from './inventoryController.js';
 
@@ -179,6 +180,22 @@ export const scheduleAppointment = async (req, res) => {
     }
     const appointment = new Appointment({ user: userId, date, notes, bloodGroup });
     await appointment.save();
+
+    // Trigger Email Notification to Admin
+    try {
+      const admins = await User.find({ role: 'admin' });
+      for (const admin of admins) {
+        if (admin.email) {
+          const subject = 'New Blood Donation Appointment Booked';
+          const text = `Hello Admin,\n\nA new blood donation appointment has been scheduled by ${user.fullName}.\n\nDetails:\nDonor: ${user.fullName}\nBlood Group: ${bloodGroup}\nDate: ${new Date(date).toLocaleDateString()}\nNotes: ${notes || 'None'}\n\nPlease review and process the request in the admin dashboard.`;
+          const html = `<h3>New Appointment Request</h3><p>Hello Admin,</p><p>A new blood donation appointment has been scheduled by <strong>${user.fullName}</strong>.</p><p><strong>Details:</strong><br/>Donor: ${user.fullName}<br/>Blood Group: ${bloodGroup}<br/>Date: ${new Date(date).toLocaleDateString()}<br/>Notes: ${notes || 'None'}</p><p>Please review and process the request in the admin dashboard.</p>`;
+          await sendEmail(admin.email, subject, text, html);
+        }
+      }
+    } catch (emailErr) {
+      console.error('Failed to notify admins about new appointment:', emailErr);
+    }
+
     res.json({ success: true, appointment });
   } catch (err) {
     console.error('Appointment creation error:', err);
