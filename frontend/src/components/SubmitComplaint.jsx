@@ -36,12 +36,15 @@ const SubmitComplaint = () => {
             });
 
             if (res.data.success) {
-                setMessage({ type: 'success', text: 'Complaint submitted successfully!' });
+                setMessage({ type: 'success', text: res.data.message || 'Complaint submitted successfully!' });
                 setFormData({ category: '', subject: '', description: '' });
+            } else {
+                setMessage({ type: 'error', text: res.data.message || 'Failed to submit complaint. Please try again.' });
             }
         } catch (err) {
             console.error('Error submitting complaint:', err);
-            setMessage({ type: 'error', text: 'Failed to submit complaint. Please try again.' });
+            const errorText = err?.response?.data?.message || err?.message || 'Failed to submit complaint. Please try again.';
+            setMessage({ type: 'error', text: errorText });
         } finally {
             setLoading(false);
         }

@@ -22,7 +22,7 @@ const Complaints = () => {
         const fetchComplaints = async () => {
             try {
                 const res = await API.get(`/complaints?userId=${userId}`);
-                setComplaints(res.data || []);
+                setComplaints(res.data.complaints || res.data || []);
             } catch (err) {
                 console.error("Complaints fetch error", err);
             } finally {
@@ -44,16 +44,15 @@ const Complaints = () => {
         e.preventDefault();
         try {
             await API.post("/complaints", {
-                userId,
                 category: formData.category,
-                title: formData.subject,
+                subject: formData.subject,
                 description: formData.message
             });
             setFormData({ subject: "", message: "", category: "general" });
             setShowForm(false);
             // Refresh complaints list
             const res = await API.get(`/complaints?userId=${userId}`);
-            setComplaints(res.data || []);
+            setComplaints(res.data.complaints || res.data || []);
             showToast("Complaint submitted successfully!", 'success');
         } catch (err) {
             console.error("Complaint submission error", err);
@@ -63,10 +62,10 @@ const Complaints = () => {
 
     const handleReopen = async (complaintId) => {
         try {
-            await API.patch(`/complaints/${complaintId}/reopen`, { userId });
+            await API.patch(`/complaints/${complaintId}/reopen`);
             // Refresh complaints
             const res = await API.get(`/complaints?userId=${userId}`);
-            setComplaints(res.data || []);
+            setComplaints(res.data.complaints || res.data || []);
             showToast("Complaint reopened successfully!", 'success');
         } catch (err) {
             console.error("Reopen error", err);

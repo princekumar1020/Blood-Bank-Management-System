@@ -27,17 +27,17 @@ const DonorComplaints = () => {
   // Form State
   const [formData, setFormData] = useState({
     category: 'General',
-    title: '',
+    subject: '',
     description: ''
   });
 
   const categories = ['General', 'Appointment', 'Donation Process', 'Staff Behavior', 'Technical Issue', 'Other'];
 
   const statusConfig = {
-    pending: { label: 'In Review', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
-    'in-progress': { label: 'Responded', color: 'bg-rose-100 text-rose-700 border-rose-200', icon: MessageSquare },
-    resolved: { label: 'Resolved', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle },
-    reopened: { label: 'Reopened', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: RefreshCcw }
+    'Pending': { label: 'In Review', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
+    'In Progress': { label: 'Responded', color: 'bg-rose-100 text-rose-700 border-rose-200', icon: MessageSquare },
+    'Resolved': { label: 'Resolved', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle },
+    'Reopened': { label: 'Reopened', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: RefreshCcw }
   };
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const DonorComplaints = () => {
     try {
       setLoading(true);
       const res = await API.get(`/complaints?userId=${userId}`);
-      setComplaints(res.data);
+      setComplaints(res.data.complaints || res.data);
     } catch (err) {
       showToast('Failed to load complaints', 'error');
     } finally {
@@ -60,12 +60,13 @@ const DonorComplaints = () => {
     e.preventDefault();
     try {
       await API.post('/complaints', {
-        ...formData,
-        userId
+        category: formData.category,
+        subject: formData.subject,
+        description: formData.description
       });
       showToast('Complaint submitted successfully', 'success');
       setShowNewModal(false);
-      setFormData({ category: 'General', title: '', description: '' });
+      setFormData({ category: 'General', subject: '', description: '' });
       fetchComplaints();
     } catch (err) {
       showToast('Failed to submit complaint', 'error');
@@ -74,7 +75,7 @@ const DonorComplaints = () => {
 
   const handleReopen = async (id) => {
     try {
-      await API.patch(`/complaints/${id}/reopen`, { userId });
+      await API.patch(`/complaints/${id}/reopen`);
       showToast('Complaint reopened', 'success');
       fetchComplaints();
       setShowViewModal(false);
@@ -84,7 +85,7 @@ const DonorComplaints = () => {
   };
 
   const StatusBadge = ({ status }) => {
-    const config = statusConfig[status] || statusConfig.pending;
+    const config = statusConfig[status] || statusConfig['Pending'];
     const Icon = config.icon;
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${config.color}`}>

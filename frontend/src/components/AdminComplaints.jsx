@@ -14,9 +14,10 @@ const statusStyles = {
 const normalizeStatus = (status) => {
   if (!status) return 'pending';
   const value = status.toString().trim().toLowerCase();
-  if (value === 'in review' || value === 'in-review' || value === 'inprogress') return 'in-progress';
-  if (value === 'closed') return 'resolved';
-  if (value === 'open') return 'pending';
+  if (value === 'in review' || value === 'in-review' || value === 'in progress' || value === 'inprogress') return 'in-progress';
+  if (value === 'closed' || value === 'resolved') return 'resolved';
+  if (value === 'open' || value === 'pending') return 'pending';
+  if (value === 'reopened') return 'reopened';
   return value;
 };
 
@@ -51,7 +52,7 @@ const AdminComplaints = () => {
     setLoading(true);
     try {
       const response = await adminAPI.getComplaints(search);
-      setComplaints(response.data || []);
+      setComplaints(response.data.complaints || response.data || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
       showToast('Unable to load complaints', 'error');
@@ -98,12 +99,12 @@ const AdminComplaints = () => {
     try {
       // Map display status to backend status
       const statusMapping = {
-        'In Review': 'in-progress',
-        'Responded': 'responded',
-        'Resolved': 'resolved'
+        'In Review': 'In Progress',
+        'Responded': 'In Progress',
+        'Resolved': 'Resolved'
       };
       
-      const backendStatus = statusMapping[statusOption] || 'in-progress';
+      const backendStatus = statusMapping[statusOption] || 'In Progress';
       
       const response = await adminAPI.respondToComplaint(selectedComplaint._id, {
         adminResponse: responseText.trim(),
