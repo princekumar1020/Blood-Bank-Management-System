@@ -5,7 +5,7 @@ import { Clock, CheckCircle, AlertCircle, Calendar } from "lucide-react";
 const RecipientHistory = () => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const userId = localStorage.getItem("userId");
+    const userId = sessionStorage.getItem("userId");
 
     useEffect(() => {
         const fetchHistory = async () => {

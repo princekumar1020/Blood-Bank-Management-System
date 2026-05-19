@@ -18,10 +18,10 @@ const sidebarLinks = [
   { label: "Complaints", icon: <MessageSquare className="w-5 h-5" /> },
 ];
 
-// Simulate getting userId from localStorage or context
+// Simulate getting userId from sessionStorage or context
 const getUserId = () => {
   // Replace with real logic
-  return localStorage.getItem("userId") || "demo-user-id";
+  return sessionStorage.getItem("userId") || "demo-user-id";
 };
 
 
@@ -75,28 +75,33 @@ export default function DonorDashboard() {
       });
 
     // Fetch latest appointment for dashboard
-    if (activePage === "Dashboard") {
+    if (activePage === "Dashboard" || activePage === "Appointments") {
       axios.get(`http://localhost:5000/api/donor/latest-appointment?userId=${userId}`)
         .then(res => {
-          setLatestAppointment(res.data?.appointment || null);
+          const appointment = res.data?.appointment || null;
+          setLatestAppointment(appointment);
+          
           // Eligibility logic
-          if (res.data?.appointment) {
-            const status = res.data.appointment.status;
-            const lastDate = new Date(res.data.appointment.date);
+          if (appointment) {
+            const status = appointment.status;
+            const lastDate = new Date(appointment.date);
             const now = new Date();
             
             // Calculate strictly based on date
             const nextEligibleDate = new Date(lastDate);
             nextEligibleDate.setDate(nextEligibleDate.getDate() + 30);
 
-            if (status === 'completed' || status === 'approved') {
+            if (status === 'completed' || status === 'fulfilled') {
               if (now < nextEligibleDate) {
-                setEligibilityMsg(`You are not eligible till ${nextEligibleDate.toLocaleDateString()}. You must wait 30 days after an approved or completed donation.`);
+                setEligibilityMsg(`You are not eligible to donate yet. Your last completed donation was on ${lastDate.toLocaleDateString()}. You can only donate again after 30 days. Please wait until ${nextEligibleDate.toLocaleDateString()}.`);
                 setCanSchedule(false);
               } else {
                 setEligibilityMsg("");
                 setCanSchedule(true);
               }
+            } else if (status === 'approved') {
+              setEligibilityMsg("Your appointment is approved! Please visit the center at your scheduled time.");
+              setCanSchedule(false);
             } else if (status === 'scheduled') {
               setEligibilityMsg("You already have a pending appointment. Please wait for it to be processed.");
               setCanSchedule(false);
@@ -155,8 +160,8 @@ export default function DonorDashboard() {
             <button
               className="text-red-600 font-bold flex items-center gap-2 hover:underline"
               onClick={() => {
-                localStorage.removeItem("userId");
-                localStorage.removeItem("token");
+                sessionStorage.removeItem("userId");
+                sessionStorage.removeItem("token");
                 window.location.href = "/login";
               }}
             >
@@ -294,7 +299,7 @@ export default function DonorDashboard() {
               {latestAppointment && (
                 <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 rounded-lg px-4 py-2 text-base font-semibold mb-6 w-full text-center">
                   <div><b>Date:</b> {latestAppointment.date ? new Date(latestAppointment.date).toLocaleDateString() : '-'}</div>
-                  <div><b>Status:</b> {latestAppointment.status === 'scheduled' ? 'Pending' : latestAppointment.status === 'approved' ? 'Approved' : latestAppointment.status === 'cancelled' ? 'Rejected' : (latestAppointment.status === 'completed' || latestAppointment.status === 'fulfilled') ? 'Completed' : latestAppointment.status.charAt(0).toUpperCase() + latestAppointment.status.slice(1)}</div>
+                  <div><b>Status:</b> {latestAppointment.status === 'scheduled' ? 'Pending' : latestAppointment.status === 'approved' ? 'Approved' : latestAppointment.status === 'cancelled' || latestAppointment.status === 'rejected' ? 'Rejected' : (latestAppointment.status === 'completed' || latestAppointment.status === 'fulfilled') ? 'Completed' : latestAppointment.status.charAt(0).toUpperCase() + latestAppointment.status.slice(1)}</div>
                   {latestAppointment.status === 'approved' && (
                     <>
                       <div><b>Token No.:</b> {latestAppointment.tokenNo || '-'}</div>
@@ -323,6 +328,21 @@ export default function DonorDashboard() {
                   )}
                 </div>
               )}
+              
+              {/* Only show Schedule Form if NO active appointment (scheduled/approved) */}
+              {(!latestAppointment || ['cancelled', 'rejected', 'completed', 'fulfilled'].includes(latestAppointment.status)) && (
+                <ScheduleAppointment 
+                  userId={userId} 
+                  bloodGroup={userBloodGroup} 
+                  onSuccess={() => {
+                    setActivePage("Dashboard");
+                    // Force refresh latest appointment state
+                    axios.get(`http://localhost:5000/api/donor/latest-appointment?userId=${userId}`)
+                      .then(res => setLatestAppointment(res.data?.appointment));
+                  }} 
+                />
+              )}
+              
               {/* Edit Appointment Modal (reused) */}
               {editMode && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -348,7 +368,6 @@ export default function DonorDashboard() {
                   </div>
                 </div>
               )}
-              <ScheduleAppointment userId={userId} bloodGroup={userBloodGroup} onSuccess={() => setActivePage("Dashboard")} />
             </div>
           )}
         </main>

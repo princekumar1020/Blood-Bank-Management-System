@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { User, Mail, Phone, Camera, Edit2, Check, X, ShieldCheck } from "lucide-react";
 
-const getUserId = () => localStorage.getItem("userId") || "demo-user-id";
+const getUserId = () => sessionStorage.getItem("userId") || "demo-user-id";
 
 export default function MyProfile({ userId: propUserId }) {
   const userId = propUserId || getUserId();

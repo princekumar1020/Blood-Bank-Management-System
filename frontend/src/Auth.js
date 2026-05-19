@@ -189,8 +189,8 @@ export default function Auth() {
           email: submissionData.email,
           password: submissionData.password
         });
-        localStorage.setItem("token", res.data.token);
-        if (res.data.userId) localStorage.setItem("userId", res.data.userId);
+        sessionStorage.setItem("token", res.data.token);
+        if (res.data.userId) sessionStorage.setItem("userId", res.data.userId);
         showToast('Logged in as admin', 'success');
         navigate('/admin-dashboard', { replace: true });
         return;
@@ -201,8 +201,8 @@ export default function Auth() {
           email: submissionData.email,
           password: submissionData.password
         });
-        localStorage.setItem("token", res.data.token);
-        if (res.data.userId) localStorage.setItem("userId", res.data.userId);
+        sessionStorage.setItem("token", res.data.token);
+        if (res.data.userId) sessionStorage.setItem("userId", res.data.userId);
         showToast(`Logged in as ${res.data.role}`, 'success');
         if (res.data.role === 'recipient') {
           navigate("/recipient-dashboard");

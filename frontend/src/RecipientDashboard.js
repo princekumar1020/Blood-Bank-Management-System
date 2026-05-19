@@ -19,7 +19,7 @@ const sidebarLinks = [
 ];
 
 const getUserId = () => {
-  return localStorage.getItem("userId") || "demo-user-id";
+  return sessionStorage.getItem("userId") || "demo-user-id";
 };
 
 export default function RecipientDashboard() {
@@ -371,7 +371,7 @@ export default function RecipientDashboard() {
         <header className="bg-white border-b border-gray-100 py-6 px-10 flex justify-between items-center sticky top-0 z-20">
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">{activePage}</h2>
           <button 
-             onClick={() => { localStorage.clear(); window.location.href = "/"; }}
+             onClick={() => { sessionStorage.clear(); window.location.href = "/"; }}
              className="flex items-center gap-2 text-gray-600 font-bold hover:text-[#e20000] transition-colors"
           >
              <LogOut className="w-5 h-5 text-[#e20000]" /> Logout

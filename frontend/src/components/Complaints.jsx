@@ -15,7 +15,7 @@ const Complaints = () => {
     });
     const [selectedComplaint, setSelectedComplaint] = useState(null);
     const [showModal, setShowModal] = useState(false);
-    const userId = localStorage.getItem("userId");
+    const userId = sessionStorage.getItem("userId");
     const { showToast } = useToast();
 
     useEffect(() => {

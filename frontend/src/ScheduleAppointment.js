@@ -27,16 +27,19 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
           const nextEligibleDate = new Date(lastDate);
           nextEligibleDate.setDate(nextEligibleDate.getDate() + 30);
 
-          if (status === 'completed' || status === 'approved') {
+          if (status === 'completed' || status === 'fulfilled') {
             if (now < nextEligibleDate) {
               const diffTime = nextEligibleDate - now;
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              setEligibilityMsg(`You can only schedule a new donation 30 days after your last donation. Please wait ${diffDays} more days.`);
+              setEligibilityMsg(`You can only schedule a new donation 30 days after your last completed donation. Please wait ${diffDays} more days until ${nextEligibleDate.toLocaleDateString()}.`);
               setCanBook(false);
             } else {
               setEligibilityMsg("");
               setCanBook(true);
             }
+          } else if (status === 'approved') {
+            setEligibilityMsg("Your appointment is approved! You cannot book another one until this one is completed.");
+            setCanBook(false);
           } else if (status === 'scheduled') {
             setEligibilityMsg("You already have a pending appointment. Please wait for approval or completion.");
             setCanBook(false);

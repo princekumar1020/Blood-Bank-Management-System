@@ -32,7 +32,7 @@ const DonationHistory = ({ role }) => {
             setLoading(true);
             try {
                 // Fetch appointments for history as they contain location and status
-                const userId = localStorage.getItem("userId") || "demo-user-id";
+                const userId = sessionStorage.getItem("userId") || "demo-user-id";
                 const res = await axios.get(`http://localhost:5000/api/admin/appointments`);
                 
                 // Filter appointments for the current user
