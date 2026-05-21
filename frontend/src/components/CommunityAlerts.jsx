@@ -35,9 +35,21 @@ const getInitialPostDraft = (role) => ({
     imageUrl: '',
 });
 
-const formatRelativeTime = (dateString) => {
-    if (!dateString) return 'just now';
-    const date = new Date(dateString);
+const formatRelativeTime = (dateValue) => {
+    if (!dateValue) return 'just now';
+    let date;
+    if (dateValue instanceof Date) {
+        date = dateValue;
+    } else if (typeof dateValue === 'number' || typeof dateValue === 'string') {
+        date = new Date(dateValue);
+    } else if (dateValue?.$date) {
+        date = new Date(dateValue.$date);
+    } else {
+        date = new Date(dateValue);
+    }
+
+    if (Number.isNaN(date.getTime())) return 'just now';
+
     const diff = Date.now() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
@@ -71,6 +83,7 @@ const CommunityAlerts = ({ user, requests }) => {
     const [activeRecipients, setActiveRecipients] = useState(0);
     const [interactionEvents, setInteractionEvents] = useState([]);
     const postCategoryOptions = user?.role === 'recipient' ? recipientCategoryOptions : categoryOptions;
+    const userId = sessionStorage.getItem('userId') || user?._id || user?.id;
     const socketUrl = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
 
         const [healthTips, setHealthTips] = useState([
@@ -233,8 +246,6 @@ const CommunityAlerts = ({ user, requests }) => {
         return () => clearInterval(interval);
     }, [posts]);
 
-    const userId = user?._id || user?.id || user?.userId || '';
-
     const refreshPosts = async () => {
         try {
             const res = await API.get('/community/posts');
@@ -344,12 +355,16 @@ const CommunityAlerts = ({ user, requests }) => {
     const latestInteractions = posts
         .filter(isOwnPost)
         .flatMap((post) => {
-            const comments = (post.comments || []).map((comment) => ({
-                type: 'comment',
-                message: `${comment.authorName || 'Someone'} commented on your post`,
-                detail: comment.text || post.category,
-                createdAt: comment.createdAt || post.createdAt,
-            }));
+            const comments = (post.comments || []).map((comment) => {
+                const authorName = comment.authorName || comment.author?.fullName || 'Someone';
+                const timestamp = comment.createdAt || comment.updatedAt || post.updatedAt || post.createdAt;
+                return {
+                    type: 'comment',
+                    message: `${authorName} commented on your post`,
+                    detail: comment.text || 'Shared a comment',
+                    createdAt: timestamp,
+                };
+            });
             const likes = (post.likes || []).map((like) => {
                 let likerName = 'Someone';
                 if (typeof like === 'object' && like !== null) {
@@ -358,13 +373,17 @@ const CommunityAlerts = ({ user, requests }) => {
                 return {
                     type: 'like',
                     message: `${likerName} liked your post`,
-                    detail: post.category,
+                    detail: post.category || 'your post',
                     createdAt: post.updatedAt || post.createdAt,
                 };
             });
             return [...comments, ...likes];
         })
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .sort((a, b) => {
+            const aTime = new Date(a.createdAt).getTime();
+            const bTime = new Date(b.createdAt).getTime();
+            return bTime - aTime;
+        })
         .slice(0, 3);
 
     const displayInteractions = [...interactionEvents, ...latestInteractions]
@@ -442,6 +461,24 @@ const CommunityAlerts = ({ user, requests }) => {
                                         Comment {item.comments?.length ?? item.comments ?? 0}
                                     </button>
                                 </div>
+                                {item.comments && item.comments.length > 0 && (
+                                    <div className="mt-4 space-y-3 rounded-3xl bg-white p-4 border border-gray-200">
+                                        <div className="mb-3 text-sm font-semibold text-gray-900">Comments</div>
+                                        {item.comments.map((comment) => {
+                                            const commentAuthor = comment.authorName || comment.author?.fullName || 'Someone';
+                                            const commentText = comment.text || 'No comment text';
+                                            return (
+                                                <div key={comment._id || `${item._id}-${commentAuthor}-${commentText}`} className="rounded-3xl bg-gray-50 p-3 border border-gray-100">
+                                                    <div className="flex items-center justify-between gap-3 text-sm text-gray-600">
+                                                        <span className="font-semibold text-gray-900">{commentAuthor}</span>
+                                                        <span>{formatRelativeTime(comment.createdAt || comment.updatedAt || item.updatedAt || item.createdAt)}</span>
+                                                    </div>
+                                                    <p className="mt-2 text-sm text-gray-700">{commentText}</p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                                 {openCommentBoxes[item._id] && (
                                     <div className="mt-4 rounded-3xl bg-white p-4 border border-gray-200">
                                         <textarea
@@ -595,9 +632,10 @@ const CommunityAlerts = ({ user, requests }) => {
                                         </div>
                                         <p className="mt-1 text-sm text-gray-600">
                                             {interaction.message}
-                                            {interaction.detail && interaction.type === 'comment' ? `: "${interaction.detail}"` : ''}
-                                            {interaction.detail && interaction.type === 'like' ? ` on ${interaction.detail}` : ''}
                                         </p>
+                                        {interaction.detail && (
+                                            <p className="mt-2 text-sm text-gray-500">"{interaction.detail}"</p>
+                                        )}
                                     </div>
                                 )) : (
                                     <div className="rounded-[1.75rem] border border-gray-200 bg-white p-5 text-center text-sm text-gray-500">No recent interactions yet.</div>

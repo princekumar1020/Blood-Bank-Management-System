@@ -410,7 +410,7 @@ export default function RecipientDashboard() {
         {activePage === 'Request Blood' && renderRequestBlood()}
         {activePage === 'Recipient History' && <RecipientHistory />}
         {activePage === 'Complaints' && <Complaints />}
-        {activePage === 'Community Alerts' && <CommunityAlerts user={user} requests={requests} />}
+        {activePage === 'Community Alerts' && <CommunityAlerts user={user} />}
 
         {activePage !== 'Dashboard' && activePage !== 'Profile' && activePage !== 'Request Blood' && activePage !== 'Recipient History' && activePage !== 'Complaints' && activePage !== 'Community Alerts' && (
            <div className="p-20 text-center flex flex-col items-center justify-center space-y-4">

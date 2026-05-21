@@ -7,6 +7,7 @@ import MyProfile from "./MyProfile";
 import DonationHistory from "./components/DonationHistory";
 import Complaints from "./components/Complaints";
 import Certificates from "./components/Certificates";
+import CommunityAlerts from "./components/CommunityAlerts";
 
 const sidebarLinks = [
   { label: "Dashboard", icon: <Droplet className="w-5 h-5" /> },
@@ -41,6 +42,15 @@ export default function DonorDashboard() {
   const [error, setError] = useState("");
   const [userBloodGroup, setUserBloodGroup] = useState("");
   const [latestAppointment, setLatestAppointment] = useState(null);
+  const [user, setUser] = useState(() => {
+    const storedUser = sessionStorage.getItem("user");
+    if (!storedUser) return null;
+    try {
+      return JSON.parse(storedUser);
+    } catch {
+      return null;
+    }
+  });
   const [eligibilityMsg, setEligibilityMsg] = useState("");
   const [canSchedule, setCanSchedule] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -55,6 +65,7 @@ export default function DonorDashboard() {
     axios.get(`http://localhost:5000/api/donor/dashboard?userId=${userId}`)
       .then(res => {
         setUserBloodGroup(res.data?.bloodGroup || "");
+        setUser((prev) => prev || ({ ...res.data, role: 'donor' }));
         if (activePage === "Dashboard") {
           setStats(res.data);
           setLoading(false);
@@ -300,6 +311,10 @@ export default function DonorDashboard() {
 
           {activePage === "Complaints" && (
             <Complaints />
+          )}
+
+          {activePage === "Community Alerts" && (
+            <CommunityAlerts user={user || { role: 'donor', bloodGroup: userBloodGroup }} />
           )}
 
           {activePage === "Appointments" && (
