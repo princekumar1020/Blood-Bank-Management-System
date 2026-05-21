@@ -29,18 +29,21 @@ export const createComplaint = async (req, res) => {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    // Save complaint
+    // Fetch the user who submitted the complaint to include in the email
+    const submittingUser = await User.findById(userId);
+    const userFullName = submittingUser ? submittingUser.fullName : 'A user';
+
+    // Save complaint including captured user info for future orphaned-user fallback
     const newComplaint = new Complaint({
       user: userId,
+      userName: submittingUser?.fullName || '',
+      userEmail: submittingUser?.email || '',
+      userRole: submittingUser?.role || '',
       category,
       subject,
       description
     });
     await newComplaint.save();
-
-    // Fetch the user who submitted the complaint to include in the email
-    const submittingUser = await User.findById(userId);
-    const userFullName = submittingUser ? submittingUser.fullName : 'A user';
 
     // Send email to the hardcoded blood bank team
     const mailOptions = {
@@ -81,18 +84,82 @@ Blood Bank Management System`
 // @route   GET /api/complaints
 export const getComplaints = async (req, res) => {
   try {
-    const { userId } = req.query;
+    const { userId, search } = req.query;
     
-    let complaints;
+    console.log('=== COMPLAINT REQUEST ===');
+    console.log('userId:', userId);
+    console.log('search:', search);
+    
+    let query = {};
+    
+    // Add userId filter if provided
     if (userId) {
-      // Fetch complaints for a specific user
-      complaints = await Complaint.find({ user: userId }).sort({ createdAt: -1 }).populate('user', 'fullName email');
-    } else {
-      // Fetch all complaints for the admin dashboard
-      complaints = await Complaint.find({}).sort({ createdAt: -1 }).populate('user', 'fullName email');
+      query.user = userId;
     }
     
-    res.status(200).json({ success: true, complaints });
+    // If search is provided, build search query
+    if (search && search.trim() !== '') {
+      const searchTerm = search.trim();
+      const searchRegex = new RegExp(searchTerm, 'i'); // Case-insensitive
+      
+      // Find users matching the search by name only
+      const matchingUsers = await User.find({
+        fullName: searchRegex
+      }).select('_id');
+      
+      const userIds = matchingUsers.map(u => u._id);
+      console.log(`Search term: "${searchTerm}"`);
+      console.log(`Users found: ${userIds.length}`);
+      
+      // Search only by linked user name
+      if (query.user) {
+        const userFilter = query.user;
+        delete query.user;
+        query.$and = [
+          { user: userFilter },
+          { user: { $in: userIds } }
+        ];
+      } else {
+        query.user = { $in: userIds };
+      }
+      
+      console.log('Query with search:', JSON.stringify(query, null, 2));
+    } else {
+      console.log('No search term, fetching all complaints with userId filter:', userId ? 'yes' : 'no');
+    }
+    
+    // Fetch complaints with populated user
+    const complaints = await Complaint.find(query)
+      .sort({ createdAt: -1 })
+      .populate('user', 'fullName email role');
+    
+    console.log(`Total complaints found: ${complaints.length}`);
+    
+    // Transform complaints to ensure user data is always present
+    const transformedComplaints = complaints.map(complaint => {
+      let comp = complaint.toObject ? complaint.toObject() : complaint;
+      
+      // Handle missing or invalid linked user data
+      if (!comp.user) {
+        comp.user = {
+          _id: null,
+          fullName: comp.userName || 'Unknown User',
+          email: comp.userEmail || 'N/A',
+          role: comp.userRole || 'N/A'
+        };
+      } else {
+        // Ensure all required fields exist
+        if (!comp.user.fullName) comp.user.fullName = comp.userName || 'Unknown User';
+        if (!comp.user.email) comp.user.email = comp.userEmail || 'N/A';
+        if (!comp.user.role) comp.user.role = comp.userRole || 'N/A';
+      }
+      
+      return comp;
+    });
+    
+    console.log('=== END COMPLAINT REQUEST ===\n');
+    
+    res.status(200).json({ success: true, complaints: transformedComplaints });
   } catch (error) {
     console.error('Error fetching complaints:', error);
     res.status(500).json({ success: false, message: 'Server error while fetching complaints' });
@@ -133,7 +200,7 @@ export const respondToComplaint = async (req, res) => {
         status: status || 'in-progress'
       },
       { new: true }
-    ).populate('user', 'fullName email');
+    ).populate('user', 'fullName email role');
 
     // Send email to the user who submitted the complaint
     try {
@@ -185,7 +252,7 @@ export const updateComplaintStatus = async (req, res) => {
       id,
       { status },
       { new: true }
-    ).populate('user', 'fullName email');
+    ).populate('user', 'fullName email role');
 
     if (!complaint) {
       return res.status(404).json({ success: false, message: 'Complaint not found' });
@@ -322,5 +389,55 @@ Blood Bank Management System`
   } catch (error) {
     console.error('Error reopening complaint:', error);
     res.status(500).json({ success: false, message: 'Server error while reopening complaint' });
+  }
+};
+
+// @desc    Debug endpoint - Check complaint data structure
+// @route   GET /api/complaints/debug/status
+export const debugComplaints = async (req, res) => {
+  try {
+    console.log('\n=== DEBUG: Checking complaint data ===');
+    
+    // Get a few complaints without populate to see raw data
+    const rawComplaints = await Complaint.find({}).limit(5);
+    console.log('Raw complaints (first 5):');
+    rawComplaints.forEach((c, i) => {
+      console.log(`  ${i+1}. ID: ${c._id}, User field: ${c.user}, Type: ${typeof c.user}`);
+    });
+    
+    // Get complaints with populate
+    const populatedComplaints = await Complaint.find({}).populate('user', 'fullName email role').limit(5);
+    console.log('\nPopulated complaints (first 5):');
+    populatedComplaints.forEach((c, i) => {
+      const comp = c.toObject();
+      console.log(`  ${i+1}. ID: ${comp._id}`);
+      if (comp.user) {
+        console.log(`     User: ${comp.user.fullName || 'N/A'}, Email: ${comp.user.email || 'N/A'}, Role: ${comp.user.role || 'N/A'}`);
+      } else {
+        console.log(`     User: NULL`);
+      }
+    });
+    
+    // Count complaints with null user references
+    const nullUserComplaints = await Complaint.find({ user: null }).countDocuments();
+    console.log(`\nComplaints with null user: ${nullUserComplaints}`);
+    
+    console.log('=== END DEBUG ===\n');
+    
+    res.status(200).json({ 
+      success: true, 
+      debug: {
+        totalComplaints: await Complaint.countDocuments(),
+        nullUserCount: nullUserComplaints,
+        sampleData: populatedComplaints.map(c => ({
+          id: c._id,
+          user: c.user ? { fullName: c.user.fullName, role: c.user.role } : null,
+          subject: c.subject
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in debug endpoint:', error);
+    res.status(500).json({ success: false, message: 'Debug error' });
   }
 };

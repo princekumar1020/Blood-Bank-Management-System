@@ -21,7 +21,11 @@ API.interceptors.request.use(addAuthToken);
 AdminAPI.interceptors.request.use(addAuthToken);
 
 export const adminAPI = {
-  getComplaints: (search) => AdminAPI.get(`/complaints${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  getComplaints: (search) => {
+    const url = `/complaints${search ? `?search=${encodeURIComponent(search)}` : ''}`;
+    console.log('Fetching complaints from:', url);
+    return AdminAPI.get(url);
+  },
   respondToComplaint: (id, payload) => AdminAPI.patch(`/complaints/${id}/respond`, payload),
   updateComplaintStatus: (id, status) => AdminAPI.patch(`/complaints/${id}/status`, { status }),
   deleteComplaint: (id) => AdminAPI.delete(`/complaints/${id}`)

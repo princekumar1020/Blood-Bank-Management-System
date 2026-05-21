@@ -180,7 +180,7 @@ export const getRequests = async (req, res) => {
     if (search) query.patientName = { $regex: search, $options: 'i' };
     if (status) query.status = status;
     // For urgency, you can add logic if you have an urgency field
-    const requests = await BloodRequest.find(query).populate('recipient', 'fullName email mobileNo bloodGroup');
+    const requests = await BloodRequest.find(query).sort({ createdAt: -1 }).populate('recipient', 'fullName email mobileNo bloodGroup');
     // For each request, build row data
     const requestData = requests.map((req, idx) => {
       const recipientName = req.recipient?.fullName || 'Unknown Recipient';

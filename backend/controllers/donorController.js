@@ -181,19 +181,15 @@ export const scheduleAppointment = async (req, res) => {
     const appointment = new Appointment({ user: userId, date, notes, bloodGroup });
     await appointment.save();
 
-    // Trigger Email Notification to Admin
+    // Notify central bloodbank team only to avoid bounced/inactive admin addresses
     try {
-      const admins = await User.find({ role: 'admin' });
-      for (const admin of admins) {
-        if (admin.email) {
-          const subject = 'New Blood Donation Appointment Booked';
-          const text = `Hello Admin,\n\nA new blood donation appointment has been scheduled by ${user.fullName}.\n\nDetails:\nDonor: ${user.fullName}\nBlood Group: ${bloodGroup}\nDate: ${new Date(date).toLocaleDateString()}\nNotes: ${notes || 'None'}\n\nPlease review and process the request in the admin dashboard.`;
-          const html = `<h3>New Appointment Request</h3><p>Hello Admin,</p><p>A new blood donation appointment has been scheduled by <strong>${user.fullName}</strong>.</p><p><strong>Details:</strong><br/>Donor: ${user.fullName}<br/>Blood Group: ${bloodGroup}<br/>Date: ${new Date(date).toLocaleDateString()}<br/>Notes: ${notes || 'None'}</p><p>Please review and process the request in the admin dashboard.</p>`;
-          await sendEmail(admin.email, subject, text, html);
-        }
-      }
+      const subject = 'New Blood Donation Appointment Booked';
+      const text = `Hello Bloodbank Team,\n\nA new blood donation appointment has been scheduled by ${user.fullName}.\n\nDetails:\nDonor: ${user.fullName}\nBlood Group: ${bloodGroup}\nDate: ${new Date(date).toLocaleDateString()}\nNotes: ${notes || 'None'}\n\nPlease review and process the request in the admin dashboard.`;
+      const html = `<h3>New Appointment Request</h3><p>Hello Bloodbank Team,</p><p>A new blood donation appointment has been scheduled by <strong>${user.fullName}</strong>.</p><p><strong>Details:</strong><br/>Donor: ${user.fullName}<br/>Blood Group: ${bloodGroup}<br/>Date: ${new Date(date).toLocaleDateString()}<br/>Notes: ${notes || 'None'}</p><p>Please review and process the request in the admin dashboard.</p>`;
+
+      await sendEmail('bloodbankteam2023@gmail.com', subject, text, html);
     } catch (emailErr) {
-      console.error('Failed to notify admins about new appointment:', emailErr);
+      console.error('Failed to notify bloodbank team about new appointment:', emailErr);
     }
 
     res.json({ success: true, appointment });

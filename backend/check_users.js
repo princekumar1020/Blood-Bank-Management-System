@@ -12,11 +12,29 @@ async function check() {
     console.log('Current Users in Database:');
     users.forEach(u => console.log(`- ${u.email} (${u.role}) [${u.fullName}]`));
     
-    const admin = await User.findOne({ email: 'admin123@gmail.com' });
+    // Try to find the legacy test admin email and update it to the active team address.
+    let admin = await User.findOne({ email: 'admin123@gmail.com' });
     if (admin) {
       console.log('Admin found:', admin.email, 'Role:', admin.role);
+      if (admin.email !== 'bloodbankteam2023@gmail.com') {
+        admin.email = 'bloodbankteam2023@gmail.com';
+        await admin.save();
+        console.log('Updated admin email to bloodbankteam2023@gmail.com');
+      } else {
+        console.log('Admin email already set to bloodbankteam2023@gmail.com');
+      }
     } else {
       console.log('Admin user (admin123@gmail.com) NOT FOUND in DB');
+      // If that specific admin isn't present, update the first admin user found.
+      const anyAdmin = await User.findOne({ role: 'admin' });
+      if (anyAdmin) {
+        console.log('Updating first admin', anyAdmin.email, '-> bloodbankteam2023@gmail.com');
+        anyAdmin.email = 'bloodbankteam2023@gmail.com';
+        await anyAdmin.save();
+        console.log('Updated admin email to bloodbankteam2023@gmail.com');
+      } else {
+        console.log('No admin user found to update.');
+      }
     }
 
     const raghav = await User.findOne({ email: /raghav/i });

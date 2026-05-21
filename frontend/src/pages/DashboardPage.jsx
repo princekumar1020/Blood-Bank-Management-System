@@ -114,7 +114,7 @@ export default function DashboardPage() {
                 <li key={req._id} style={{ borderBottom: '1px solid var(--border)', padding: '12px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
                   <div>
                     <strong>{req.patientName}</strong> needs {req.units} unit(s) of <strong>{req.bloodGroup}</strong>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>by {req.requester?.name || '...'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>by {req.requester?.name || req.requester?.fullName || 'Unknown'}</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{new Date(req.createdAt).toLocaleDateString()}</span>

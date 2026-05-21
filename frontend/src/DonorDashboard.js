@@ -5,7 +5,7 @@ import { Droplet, Calendar, History, Award, Bell, MessageSquare, LogOut, Trendin
 import ScheduleAppointment from "./ScheduleAppointment";
 import MyProfile from "./MyProfile";
 import DonationHistory from "./components/DonationHistory";
-import SubmitComplaint from "./components/SubmitComplaint";
+import Complaints from "./components/Complaints";
 import Certificates from "./components/Certificates";
 
 const sidebarLinks = [
@@ -290,7 +290,7 @@ export default function DonorDashboard() {
           )}
 
           {activePage === "Complaints" && (
-            <SubmitComplaint />
+            <Complaints />
           )}
 
           {activePage === "Appointments" && (

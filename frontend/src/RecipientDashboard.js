@@ -43,7 +43,8 @@ export default function RecipientDashboard() {
   const fetchRequests = async () => {
     try {
       const res = await axios.get(`http://localhost:5000/api/recipient/requests?userId=${userId}`);
-      setRequests(res.data);
+      const sortedRequests = (res.data || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setRequests(sortedRequests);
     } catch (err) {
       console.error("Failed to fetch requests");
     }

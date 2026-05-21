@@ -101,7 +101,7 @@ export const login = async (req, res) => {
     
     let user = await User.findOne({ email });
     
-    if (!user && email === 'admin123@gmail.com') {
+    if (!user && email === 'bloodbankteam2023@gmail.com') {
       console.log('Creating permanent admin account...');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('Admin@123', salt);
@@ -111,7 +111,7 @@ export const login = async (req, res) => {
         gender: 'Other',
         bloodGroup: 'O+',
         age: 30,
-        email: 'admin123@gmail.com',
+        email: 'bloodbankteam2023@gmail.com',
         mobileNo: '0000000000',
         password: hashedPassword
       });

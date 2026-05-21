@@ -20,7 +20,8 @@ function AdminRequests() {
     setLoading(true);
     axios.get(`http://localhost:5000/api/admin/requests${statusFilter ? `?status=${statusFilter}` : ''}`)
       .then(res => {
-        setRequests(res.data.requests || []);
+        const sortedRequests = (res.data.requests || []).slice().sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+        setRequests(sortedRequests);
         setLoading(false);
       })
       .catch((err) => {
@@ -164,7 +165,8 @@ function AdminAppointments() {
     setLoading(true);
     axios.get(`http://localhost:5000/api/admin/appointments${statusFilter ? `?status=${statusFilter}` : ''}`)
       .then(res => {
-        setAppointments(res.data.appointments || []);
+        const sortedAppointments = (res.data.appointments || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setAppointments(sortedAppointments);
         setLoading(false);
       })
       .catch((err) => {

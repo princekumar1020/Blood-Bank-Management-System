@@ -53,6 +53,7 @@ export const getAllAppointments = async (req, res) => {
         const { status } = req.query;
         const filter = status ? { status } : {};
         const appointments = await Appointment.find(filter)
+            .sort({ createdAt: -1 })
             .populate('user', 'fullName email bloodGroup role');
         res.json({ appointments });
     } catch (err) {

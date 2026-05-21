@@ -7,6 +7,18 @@ const ComplaintSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  userName: {
+    type: String,
+    default: ''
+  },
+  userEmail: {
+    type: String,
+    default: ''
+  },
+  userRole: {
+    type: String,
+    default: ''
+  },
   category: {
     type: String,
     required: true,

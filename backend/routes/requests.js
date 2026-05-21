@@ -42,10 +42,13 @@ router.post('/add', async (req, res) => {
 // @access  Private
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const requests = await BloodRequest.find().populate('recipient', 'name email').sort({ createdAt: -1 });
+    const requests = await BloodRequest.find().populate('recipient', 'fullName email').sort({ createdAt: -1 });
     const formattedRequests = requests.map((request) => ({
       ...request.toObject(),
-      requester: request.recipient,
+      requester: {
+        name: request.recipient?.fullName || request.patientName || 'Unknown',
+        email: request.recipient?.email || 'N/A'
+      }
     }));
     res.json(formattedRequests);
   } catch (err) {
@@ -70,8 +73,14 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     let request = await newRequest.save();
-    request = await request.populate('recipient', 'name email');
-    const responseRequest = { ...request.toObject(), requester: request.recipient };
+    request = await request.populate('recipient', 'fullName email');
+    const responseRequest = {
+      ...request.toObject(),
+      requester: {
+        name: request.recipient?.fullName || request.patientName || 'Unknown',
+        email: request.recipient?.email || 'N/A'
+      }
+    };
     res.status(201).json(responseRequest);
   } catch (err) {
     console.error(err.message);

@@ -51,8 +51,11 @@ const AdminComplaints = () => {
   const fetchComplaints = async (search = '') => {
     setLoading(true);
     try {
+      console.log('Fetching complaints with search:', search);
       const response = await adminAPI.getComplaints(search);
-      setComplaints(response.data.complaints || response.data || []);
+      const data = response.data.complaints || response.data || [];
+      console.log('Complaints fetched:', data.length);
+      setComplaints(data);
     } catch (error) {
       console.error('Error fetching complaints:', error);
       showToast('Unable to load complaints', 'error');
@@ -62,7 +65,20 @@ const AdminComplaints = () => {
   };
 
   const handleSearch = async () => {
-    await fetchComplaints(searchQuery.trim());
+    console.log('handleSearch called with:', searchQuery);
+    if (searchQuery.trim() === '') {
+      console.log('Search query is empty, fetching all complaints');
+      await fetchComplaints('');
+    } else {
+      console.log('Searching for:', searchQuery.trim());
+      await fetchComplaints(searchQuery.trim());
+    }
+  };
+
+  const handleClearSearch = async () => {
+    console.log('handleClearSearch called');
+    setSearchQuery('');
+    await fetchComplaints('');
   };
 
   const openComplaintDetails = (complaint) => {
@@ -176,7 +192,7 @@ const AdminComplaints = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 type="text"
-                placeholder="Search by user, subject or response"
+                placeholder="Search by user name"
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-sm text-slate-900 shadow-sm focus:border-red-500 focus:outline-none"
               />
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -187,6 +203,14 @@ const AdminComplaints = () => {
             >
               Search
             </button>
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="inline-flex items-center justify-center rounded-2xl bg-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-400"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -240,8 +264,8 @@ const AdminComplaints = () => {
                 {complaints.map((complaint) => (
                   <tr key={complaint._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-semibold text-slate-900">{complaint._id.slice(-8)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.userName || complaint.userEmail || (typeof complaint.userId === 'object' ? complaint.userId?.fullName : complaint.userId) || 'Unknown'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 capitalize">{complaint.userRole}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.user?.fullName || complaint.user?.email || 'Unknown'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700 capitalize">{complaint.user?.role || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{complaint.subject || complaint.title || 'No subject'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">{complaint.message || complaint.description || 'No message'}</td>
                     <td className="px-6 py-4">
@@ -287,7 +311,7 @@ const AdminComplaints = () => {
                   )}
                 </div>
                 <h2 className="mt-2 text-2xl font-bold text-slate-900">{selectedComplaint.subject || selectedComplaint.title || 'No subject'}</h2>
-                <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.userName || selectedComplaint.userEmail || (typeof selectedComplaint.userId === 'object' ? selectedComplaint.userId?.fullName : selectedComplaint.userId) || 'Unknown user'} ({selectedComplaint.userRole || 'unknown'})</p>
+                <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.user?.fullName || selectedComplaint.user?.email || 'Unknown user'} ({selectedComplaint.user?.role || 'unknown'})</p>
               </div>
               <button onClick={closeModal} className="rounded-full border border-gray-200 p-3 text-slate-600 transition hover:bg-gray-100">
                 <X size={18} />

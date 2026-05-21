@@ -4,6 +4,8 @@ import { AlertCircle, MessageSquare, Send, CheckCircle, Clock } from "lucide-rea
 import { useToast } from '../context/ToastContext';
 import API from '../services/api';
 
+const normalizeStatus = (status) => (status || '').toString().trim().toLowerCase();
+
 const Complaints = () => {
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -200,15 +202,15 @@ const Complaints = () => {
                                                 complaint.status === "in-progress" ? "bg-amber-100 text-amber-700" :
                                                 complaint.status === "responded" ? "bg-blue-100 text-blue-700" :
                                                 complaint.status === "reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
-                                                complaint.status === "resolved" ? "bg-green-100 text-green-700" :
+                                                normalizeStatus(complaint.status) === "resolved" ? "bg-green-100 text-green-700" :
                                                 "bg-red-100 text-red-700"
                                             }`}>
-                                                {complaint.status === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
-                                                {complaint.status === "pending" ? "Pending" :
-                                                 complaint.status === "in-progress" ? "In Review" :
-                                                 complaint.status === "responded" ? "Responded" :
-                                                 complaint.status === "reopened" ? "Reopened" :
-                                                 complaint.status === "resolved" ? "Resolved" :
+                                                {normalizeStatus(complaint.status) === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                                {normalizeStatus(complaint.status) === "pending" ? "Pending" :
+                                                 normalizeStatus(complaint.status) === "in-progress" ? "In Review" :
+                                                 normalizeStatus(complaint.status) === "responded" ? "Responded" :
+                                                 normalizeStatus(complaint.status) === "reopened" ? "Reopened" :
+                                                 normalizeStatus(complaint.status) === "resolved" ? "Resolved" :
                                                  complaint.status}
                                             </span>
                                         </td>
@@ -224,7 +226,7 @@ const Complaints = () => {
                                                     <MessageSquare size={14} />
                                                     View
                                                 </button>
-                                                {complaint.status === 'resolved' && (
+                                                {normalizeStatus(complaint.status) === 'resolved' && (
                                                     <button
                                                         onClick={() => handleReopen(complaint._id)}
                                                         className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-fuchsia-700 bg-fuchsia-100 rounded-full hover:bg-fuchsia-200 transition-colors"
@@ -277,19 +279,19 @@ const Complaints = () => {
                             <div>
                                 <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Status</p>
                                 <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-tighter ${
-                                    selectedComplaint.status === "pending" ? "bg-amber-100 text-amber-700" :
-                                    selectedComplaint.status === "in-progress" ? "bg-amber-100 text-amber-700" :
-                                    selectedComplaint.status === "responded" ? "bg-blue-100 text-blue-700" :
-                                    selectedComplaint.status === "reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
-                                    selectedComplaint.status === "resolved" ? "bg-green-100 text-green-700" :
+                                    normalizeStatus(selectedComplaint.status) === "pending" ? "bg-amber-100 text-amber-700" :
+                                    normalizeStatus(selectedComplaint.status) === "in-progress" ? "bg-amber-100 text-amber-700" :
+                                    normalizeStatus(selectedComplaint.status) === "responded" ? "bg-blue-100 text-blue-700" :
+                                    normalizeStatus(selectedComplaint.status) === "reopened" ? "bg-fuchsia-100 text-fuchsia-700" :
+                                    normalizeStatus(selectedComplaint.status) === "resolved" ? "bg-green-100 text-green-700" :
                                     "bg-red-100 text-red-700"
                                 }`}>
-                                    {selectedComplaint.status === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
-                                    {selectedComplaint.status === "pending" ? "Pending" :
-                                     selectedComplaint.status === "in-progress" ? "In Review" :
-                                     selectedComplaint.status === "responded" ? "Responded" :
-                                     selectedComplaint.status === "reopened" ? "Reopened" :
-                                     selectedComplaint.status === "resolved" ? "Resolved" :
+                                    {normalizeStatus(selectedComplaint.status) === "resolved" ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                    {normalizeStatus(selectedComplaint.status) === "pending" ? "Pending" :
+                                     normalizeStatus(selectedComplaint.status) === "in-progress" ? "In Review" :
+                                     normalizeStatus(selectedComplaint.status) === "responded" ? "Responded" :
+                                     normalizeStatus(selectedComplaint.status) === "reopened" ? "Reopened" :
+                                     normalizeStatus(selectedComplaint.status) === "resolved" ? "Resolved" :
                                      selectedComplaint.status}
                                 </span>
                             </div>

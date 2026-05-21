@@ -33,11 +33,13 @@ const DonorComplaints = () => {
 
   const categories = ['General', 'Appointment', 'Donation Process', 'Staff Behavior', 'Technical Issue', 'Other'];
 
+  const normalizeStatus = (status) => (status || '').toString().trim().toLowerCase();
+
   const statusConfig = {
-    'Pending': { label: 'In Review', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
-    'In Progress': { label: 'Responded', color: 'bg-rose-100 text-rose-700 border-rose-200', icon: MessageSquare },
-    'Resolved': { label: 'Resolved', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle },
-    'Reopened': { label: 'Reopened', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: RefreshCcw }
+    'pending': { label: 'In Review', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
+    'in progress': { label: 'Responded', color: 'bg-rose-100 text-rose-700 border-rose-200', icon: MessageSquare },
+    'resolved': { label: 'Resolved', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle },
+    'reopened': { label: 'Reopened', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: RefreshCcw }
   };
 
   useEffect(() => {
@@ -180,7 +182,7 @@ const DonorComplaints = () => {
                           <Info size={14} />
                           VIEW
                         </button>
-                        {complaint.status === 'resolved' && (
+                        {normalizeStatus(complaint.status) === 'resolved' && (
                           <button
                             onClick={() => handleReopen(complaint._id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 hover:bg-purple-600 hover:text-white rounded-lg transition-all font-bold text-xs"
@@ -341,7 +343,7 @@ const DonorComplaints = () => {
               </div>
 
               <div className="pt-8 flex justify-center">
-                {selectedComplaint.status === 'resolved' ? (
+                {normalizeStatus(selectedComplaint.status) === 'resolved' ? (
                   <button
                     onClick={() => handleReopen(selectedComplaint._id)}
                     className="flex items-center gap-3 bg-purple-600 text-white px-10 py-4 rounded-3xl font-black text-[11px] uppercase tracking-widest hover:bg-purple-700 transition-all hover:shadow-xl shadow-purple-600/20 active:scale-95"
