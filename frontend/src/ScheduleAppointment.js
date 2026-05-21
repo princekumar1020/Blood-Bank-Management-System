@@ -6,6 +6,7 @@ import { useToast } from "./context/ToastContext";
 
 export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
   const [date, setDate] = useState("");
+  const [timeSlot, setTimeSlot] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -13,6 +14,16 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
   const [canBook, setCanBook] = useState(true);
   const [eligibilityMsg, setEligibilityMsg] = useState("");
   const { showToast } = useToast();
+
+  // Generate time slots from 9 AM to 5 PM (1-hour intervals)
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 17; hour++) {
+      const timeStr = hour < 12 ? `${hour}:00 AM` : hour === 12 ? "12:00 PM" : `${hour - 12}:00 PM`;
+      slots.push(timeStr);
+    }
+    return slots;
+  };
 
   // Check eligibility on mount
   React.useEffect(() => {
@@ -75,10 +86,12 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
       await axios.post("http://localhost:5000/api/donor/appointment", {
         userId,
         date,
+        timeSlot,
         notes,
         bloodGroup
       });
       setDate("");
+      setTimeSlot("");
       setNotes("");
       if (onSuccess) onSuccess();
       showToast("Appointment scheduled successfully!", 'success');
@@ -127,6 +140,21 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
             <Calendar className="w-5 h-5" />
           </button>
         </div>
+      </div>
+      <div>
+        <label className="block text-gray-700 dark:text-gray-300 mb-1">Time Slot</label>
+        <select
+          value={timeSlot}
+          onChange={e => setTimeSlot(e.target.value)}
+          required
+          className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+          disabled={!canBook}
+        >
+          <option value="">Select a time slot</option>
+          {generateTimeSlots().map(slot => (
+            <option key={slot} value={slot}>{slot}</option>
+          ))}
+        </select>
       </div>
       <div>
         <label className="block text-gray-700 dark:text-gray-300 mb-1">Additional Notes</label>

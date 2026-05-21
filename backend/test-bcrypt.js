@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-const password = 'Admin@123';
+const password = 'Admin@123456';
 
 async function test() {
   try {

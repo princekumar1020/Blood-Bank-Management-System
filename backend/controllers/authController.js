@@ -104,7 +104,7 @@ export const login = async (req, res) => {
     if (!user && email === 'bloodbankteam2023@gmail.com') {
       console.log('Creating permanent admin account...');
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('Admin@123', salt);
+      const hashedPassword = await bcrypt.hash('Admin@123456', salt);
       user = new User({
         fullName: 'Permanent Admin',
         role: 'admin',

@@ -160,6 +160,16 @@ function AdminAppointments() {
   const [statusFilter, setStatusFilter] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, action: null });
   const [approveForm, setApproveForm] = useState({ tokenNo: '', timeSlot: '' });
+  const timeSlots = [
+    '9-10',
+    '10-11',
+    '11-12',
+    '12-1',
+    '1-2',
+    '2-3',
+    '3-4',
+    '4-5'
+  ];
 
   const fetchAppointments = () => {
     setLoading(true);
@@ -348,13 +358,16 @@ function AdminAppointments() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Time Slot</label>
-                <input
-                  type="text"
+                <select
                   className="w-full border rounded px-3 py-2"
                   value={approveForm.timeSlot}
                   onChange={e => setApproveForm({ ...approveForm, timeSlot: e.target.value })}
-                  placeholder="e.g., 10:00-10:30"
-                />
+                >
+                  <option value="">Select a time slot</option>
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex gap-2 justify-end">

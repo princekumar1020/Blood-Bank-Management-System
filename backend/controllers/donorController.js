@@ -140,9 +140,9 @@ export const getDashboard = async (req, res) => {
 
 export const scheduleAppointment = async (req, res) => {
   try {
-    const { userId, date, notes, bloodGroup } = req.body;
-    if (!userId || !date || !bloodGroup) {
-      return res.status(400).json({ error: 'Missing required fields', details: { userId, date, bloodGroup } });
+    const { userId, date, timeSlot, notes, bloodGroup } = req.body;
+    if (!userId || !date || !timeSlot || !bloodGroup) {
+      return res.status(400).json({ error: 'Missing required fields', details: { userId, date, timeSlot, bloodGroup } });
     }
     const user = await User.findById(userId);
     if (!user) {
@@ -178,14 +178,14 @@ export const scheduleAppointment = async (req, res) => {
     if (activeAppointment) {
       return res.status(400).json({ error: 'You already have a pending request. Please wait for it to be processed.' });
     }
-    const appointment = new Appointment({ user: userId, date, notes, bloodGroup });
+    const appointment = new Appointment({ user: userId, date, timeSlot, notes, bloodGroup });
     await appointment.save();
 
     // Notify central bloodbank team only to avoid bounced/inactive admin addresses
     try {
       const subject = 'New Blood Donation Appointment Booked';
-      const text = `Hello Bloodbank Team,\n\nA new blood donation appointment has been scheduled by ${user.fullName}.\n\nDetails:\nDonor: ${user.fullName}\nBlood Group: ${bloodGroup}\nDate: ${new Date(date).toLocaleDateString()}\nNotes: ${notes || 'None'}\n\nPlease review and process the request in the admin dashboard.`;
-      const html = `<h3>New Appointment Request</h3><p>Hello Bloodbank Team,</p><p>A new blood donation appointment has been scheduled by <strong>${user.fullName}</strong>.</p><p><strong>Details:</strong><br/>Donor: ${user.fullName}<br/>Blood Group: ${bloodGroup}<br/>Date: ${new Date(date).toLocaleDateString()}<br/>Notes: ${notes || 'None'}</p><p>Please review and process the request in the admin dashboard.</p>`;
+      const text = `Hello Bloodbank Team,\n\nA new blood donation appointment has been scheduled by ${user.fullName}.\n\nDetails:\nDonor: ${user.fullName}\nBlood Group: ${bloodGroup}\nDate: ${new Date(date).toLocaleDateString()}\nTime Slot: ${timeSlot}\nNotes: ${notes || 'None'}\n\nPlease review and process the request in the admin dashboard.`;
+      const html = `<h3>New Appointment Request</h3><p>Hello Bloodbank Team,</p><p>A new blood donation appointment has been scheduled by <strong>${user.fullName}</strong>.</p><p><strong>Details:</strong><br/>Donor: ${user.fullName}<br/>Blood Group: ${bloodGroup}<br/>Date: ${new Date(date).toLocaleDateString()}<br/>Time Slot: ${timeSlot}<br/>Notes: ${notes || 'None'}</p><p>Please review and process the request in the admin dashboard.</p>`;
 
       await sendEmail('bloodbankteam2023@gmail.com', subject, text, html);
     } catch (emailErr) {
