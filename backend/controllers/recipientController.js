@@ -48,17 +48,30 @@ export const createRequest = async (req, res) => {
 
     await newRequest.save();
 
-    // Send email notification for new blood request
+    const adminEmail = 'bloodbankteam2023@gmail.com';
+
+    // Send email notification for new blood request to the recipient
     if (user.email) {
       try {
         const subject = 'Blood Request Submitted Successfully';
         const text = `Hello ${user.fullName},\n\nYour blood request for ${units} unit(s) of ${finalBloodGroup} blood has been submitted successfully. We will process your request soon.\n\nPatient: ${finalPatientName}\nReason: ${reason}\n\nThank you for using our Blood Bank service.`;
         const html = `<p>Hello ${user.fullName},</p><p>Your blood request for <strong>${units}</strong> unit(s) of <strong>${finalBloodGroup}</strong> blood has been submitted successfully. We will process your request soon.</p><p><strong>Patient:</strong> ${finalPatientName}<br><strong>Reason:</strong> ${reason}</p><p>Thank you for using our Blood Bank service.</p>`;
         const result = await sendEmail(user.email, subject, text, html);
-        console.log('Blood request creation email sent:', result);
+        console.log('Blood request creation email sent to recipient:', result);
       } catch (emailError) {
-        console.error('Failed to send blood request creation email:', emailError);
+        console.error('Failed to send blood request creation email to recipient:', emailError);
       }
+    }
+
+    // Send email notification to admin for new blood request
+    try {
+      const adminSubject = 'New Blood Request Submitted';
+      const adminText = `A new blood request has been submitted:\n\nRecipient: ${user.fullName} (${user.email})\nRequest For: ${finalPatientName}\nBlood Group: ${finalBloodGroup}\nUnits: ${units}\nReason: ${reason}\n\nPlease review it in the admin panel.`;
+      const adminHtml = `<p>A new blood request has been submitted:</p><ul><li><strong>Recipient:</strong> ${user.fullName} (${user.email})</li><li><strong>Request For:</strong> ${finalPatientName}</li><li><strong>Blood Group:</strong> ${finalBloodGroup}</li><li><strong>Units:</strong> ${units}</li><li><strong>Reason:</strong> ${reason}</li></ul><p>Please review it in the admin panel.</p>`;
+      const adminResult = await sendEmail(adminEmail, adminSubject, adminText, adminHtml);
+      console.log('Blood request notification email sent to admin:', adminResult);
+    } catch (adminError) {
+      console.error('Failed to send blood request notification email to admin:', adminError);
     }
 
     res.status(201).json(newRequest);
