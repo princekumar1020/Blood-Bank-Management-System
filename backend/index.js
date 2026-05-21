@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 
-// --- ALL ROUTE IMPORTS (Aapke aur Priyanshu dono ke) ---
+// ALL ROUTE IMPORTS
 import authRoutes from './routes/auth.js';
 import donorRoutes from './routes/donor.js';
 import recipientRoutes from './routes/recipient.js';
