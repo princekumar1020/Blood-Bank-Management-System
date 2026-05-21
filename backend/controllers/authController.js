@@ -86,7 +86,19 @@ export const signup = async (req, res) => {
     const payload = { user: { id: user.id, role: user.role } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
       if (err) throw err;
-      res.json({ token, role: user.role, userId: user.id });
+      res.json({
+        token,
+        role: user.role,
+        userId: user.id,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          role: user.role,
+          bloodGroup: user.bloodGroup,
+          email: user.email,
+          mobileNo: user.mobileNo,
+        }
+      });
     });
   } catch (err) {
     console.error('Signup error: ', err);
@@ -141,7 +153,19 @@ export const login = async (req, res) => {
         throw err;
       }
       console.log('Login successful for:', email);
-      res.json({ token, role: user.role, userId: user.id });
+      res.json({
+        token,
+        role: user.role,
+        userId: user.id,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          role: user.role,
+          bloodGroup: user.bloodGroup,
+          email: user.email,
+          mobileNo: user.mobileNo,
+        }
+      });
     });
   } catch (err) {
     console.error('Login controller error:', err.message, err.stack);

@@ -1,8 +1,11 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import path from 'path';
+import http from 'http';
+import jwt from 'jsonwebtoken';
+import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 
 // --- ALL ROUTE IMPORTS (Aapke aur Priyanshu dono ke) ---
@@ -18,9 +21,12 @@ import donationRoutes from './routes/donationRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
 import requestsRoutes from './routes/requests.js';
 import userRoutes from './routes/userRoutes.js';
+import communityRoutes from './routes/community.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
@@ -61,6 +67,7 @@ app.use('/api/donations', donationRoutes);
 app.use('/api/requests', requestsRoutes);
 app.use('/api/request', requestRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/community', communityRoutes);
 
 // Test Route
 app.get('/', (req, res) => {
@@ -68,5 +75,79 @@ app.get('/', (req, res) => {
 });
 
 // Start Server
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
+const userSockets = new Map();
+app.locals.io = io;
+app.locals.userSockets = userSockets;
+
+const broadcastActiveUsers = () => {
+  const activeCounts = { donors: 0, recipients: 0 };
+  for (const [, { role }] of userSockets) {
+    if (role === 'donor') activeCounts.donors += 1;
+    if (role === 'recipient') activeCounts.recipients += 1;
+  }
+  io.emit('activeUsers', activeCounts);
+  return activeCounts;
+};
+
+const addSocketForUser = (userId, role, socketId) => {
+  if (!userId || !role) return;
+  const existing = userSockets.get(userId);
+  if (existing) {
+    existing.socketIds.add(socketId);
+    return;
+  }
+  userSockets.set(userId, { role, socketIds: new Set([socketId]) });
+};
+
+const removeSocketForUser = (userId, socketId) => {
+  if (!userId) return;
+  const existing = userSockets.get(userId);
+  if (!existing) return;
+  existing.socketIds.delete(socketId);
+  if (!existing.socketIds.size) {
+    userSockets.delete(userId);
+  }
+};
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.data.userId = decoded?.user?.id;
+    socket.data.role = decoded?.user?.role;
+  } catch (err) {
+    // ignore invalid token for guest connections
+  }
+  return next();
+});
+
+io.on('connection', (socket) => {
+  const { userId, role } = socket.data;
+  if (userId && role) {
+    addSocketForUser(userId, role, socket.id);
+    socket.join(userId);
+    const currentCounts = broadcastActiveUsers();
+    socket.emit('activeUsers', currentCounts);
+  }
+
+  socket.on('disconnect', () => {
+    if (userId) {
+      removeSocketForUser(userId, socket.id);
+      broadcastActiveUsers();
+    }
+  });
+});
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running beautifully on port ${PORT}`));
+httpServer.listen(PORT, () => console.log(`Server running beautifully on port ${PORT}`));

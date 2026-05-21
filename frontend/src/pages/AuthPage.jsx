@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const initialLogin = { email: '', password: '', userType: 'donor' }
 const initialSignup = { name: '', email: '', password: '', confirmPassword: '', userType: 'donor', bloodGroup: '', phoneNumber: '', age: '' }

@@ -20,8 +20,17 @@ const sidebarLinks = [
 
 // Simulate getting userId from sessionStorage or context
 const getUserId = () => {
-  // Replace with real logic
-  return sessionStorage.getItem("userId") || "demo-user-id";
+  const storedUserId = sessionStorage.getItem("userId");
+  if (storedUserId) return storedUserId;
+  const storedUser = sessionStorage.getItem("user");
+  if (storedUser) {
+    try {
+      return JSON.parse(storedUser)?.id || "demo-user-id";
+    } catch {
+      return "demo-user-id";
+    }
+  }
+  return "demo-user-id";
 };
 
 

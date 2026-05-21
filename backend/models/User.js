@@ -35,6 +35,10 @@ const UserSchema = new mongoose.Schema({
   photoUrl: {
     type: String,
     default: ''
+  },
+  lastActiveAt: {
+    type: Date,
+    default: null,
   }
 }, { timestamps: true });
 export default mongoose.model('User', UserSchema);

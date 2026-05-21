@@ -12,13 +12,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const storedToken = sessionStorage.getItem('token');
+    const storedUser = sessionStorage.getItem('user');
+    const storedUserId = sessionStorage.getItem('userId');
+    const storedUserRole = sessionStorage.getItem('userRole');
     if (storedToken) {
       setToken(storedToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      // In a real-world app, you'd verify the token with a backend endpoint here
-      const storedUser = sessionStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
+      } else if (storedUserId) {
+        setUser({ id: storedUserId, role: storedUserRole || null });
       }
     }
     setLoading(false);
@@ -40,16 +43,27 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (userData) => {
+    const sessionUser = userData.user || (userData.userId ? { id: userData.userId, role: userData.role } : null);
     sessionStorage.setItem('token', userData.token);
-    sessionStorage.setItem('user', JSON.stringify(userData.user));
+    if (sessionUser) {
+      sessionStorage.setItem('user', JSON.stringify(sessionUser));
+    }
+    if (userData.userId) {
+      sessionStorage.setItem('userId', userData.userId);
+    }
+    if (userData.role) {
+      sessionStorage.setItem('userRole', userData.role);
+    }
     setToken(userData.token);
-    setUser(userData.user);
+    setUser(sessionUser);
     axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
   };
 
   const logout = () => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('userRole');
     setToken(null);
     setUser(null);
     delete axios.defaults.headers.common['Authorization'];
