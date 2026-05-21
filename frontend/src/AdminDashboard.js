@@ -6,6 +6,43 @@ import AdminUserHistory from './components/AdminUserHistory';
 import RecipientManagement from './RecipientManagement';
 import Analytics from './components/Analytics';
 
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-gray-600">
+      <div>Page {currentPage} of {totalPages}</div>
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Prev
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`px-3 py-1 rounded border ${page === currentPage ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // --- Admin Requests Management Component ---
 function AdminRequests() {
   const { showToast } = useToast();
@@ -14,13 +51,16 @@ function AdminRequests() {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 8;
   const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, action: null, data: null });
 
   const fetchRequests = () => {
     setLoading(true);
+    setCurrentPage(1);
     axios.get(`http://localhost:5000/api/admin/requests${statusFilter ? `?status=${statusFilter}` : ''}`)
       .then(res => {
-        const sortedRequests = (res.data.requests || []).slice().sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+        const sortedRequests = (res.data.requests || []).slice().sort((a, b) => new Date(b.requestDate || b.createdAt || 0) - new Date(a.requestDate || a.createdAt || 0));
         setRequests(sortedRequests);
         setLoading(false);
       })
@@ -104,7 +144,7 @@ function AdminRequests() {
             </thead>
             <tbody>
               {requests.length === 0 && <tr><td colSpan={9} className="text-center p-4">No requests found.</td></tr>}
-              {requests.map(r => (
+              {requests.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map(r => (
                 <tr key={r.id} className="border-b">
                   <td className="p-2 border">{r.recipient}</td>
                   <td className="p-2 border">{r.bloodGroup}</td>
@@ -126,6 +166,7 @@ function AdminRequests() {
           </table>
         </div>
       )}
+      <PaginationControls currentPage={currentPage} totalPages={Math.ceil(requests.length / rowsPerPage)} onPageChange={setCurrentPage} />
       
       {/* Confirmation Dialog */}
       {confirmDialog.show && (
@@ -158,24 +199,18 @@ function AdminAppointments() {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 8;
   const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, action: null });
   const [approveForm, setApproveForm] = useState({ tokenNo: '', timeSlot: '' });
-  const timeSlots = [
-    '9-10',
-    '10-11',
-    '11-12',
-    '12-1',
-    '1-2',
-    '2-3',
-    '3-4',
-    '4-5'
-  ];
 
   const fetchAppointments = () => {
     setLoading(true);
+    setCurrentPage(1);
+    setLoading(true);
     axios.get(`http://localhost:5000/api/admin/appointments${statusFilter ? `?status=${statusFilter}` : ''}`)
       .then(res => {
-        const sortedAppointments = (res.data.appointments || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const sortedAppointments = (res.data.appointments || []).slice().sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
         setAppointments(sortedAppointments);
         setLoading(false);
       })
@@ -312,7 +347,7 @@ function AdminAppointments() {
             </thead>
             <tbody>
               {appointments.length === 0 && <tr><td colSpan={8} className="text-center p-4">No appointments found.</td></tr>}
-              {appointments.map(a => (
+              {appointments.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map(a => (
                 <tr key={a._id} className="border-b">
                   <td className="p-2 border">{a.user?.fullName || 'N/A'}</td>
                   <td className="p-2 border">{a.bloodGroup}</td>
@@ -339,6 +374,7 @@ function AdminAppointments() {
           </table>
         </div>
       )}
+      <PaginationControls currentPage={currentPage} totalPages={Math.ceil(appointments.length / rowsPerPage)} onPageChange={setCurrentPage} />
 
       {/* Confirmation Dialog */}
       {confirmDialog.show && confirmDialog.action === 'approve' && (
@@ -358,16 +394,13 @@ function AdminAppointments() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Time Slot</label>
-                <select
+                <input
+                  type="text"
                   className="w-full border rounded px-3 py-2"
                   value={approveForm.timeSlot}
                   onChange={e => setApproveForm({ ...approveForm, timeSlot: e.target.value })}
-                >
-                  <option value="">Select a time slot</option>
-                  {timeSlots.map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
+                  placeholder="e.g., 10:00-10:30"
+                />
               </div>
             </div>
             <div className="flex gap-2 justify-end">

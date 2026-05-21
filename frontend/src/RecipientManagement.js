@@ -2,6 +2,43 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-gray-600">
+      <div>Page {currentPage} of {totalPages}</div>
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Prev
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`px-3 py-1 rounded border ${page === currentPage ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function RecipientManagement() {
@@ -12,6 +49,8 @@ export default function RecipientManagement() {
   const [showEdit, setShowEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 8;
   const [form, setForm] = useState({
     fullName: '',
     bloodGroup: '',
@@ -32,7 +71,9 @@ export default function RecipientManagement() {
     setError('');
     try {
       const res = await axios.get('/api/recipient-management/recipients');
-      setRecipients(res.data.recipients || []);
+      const sortedRecipients = (res.data.recipients || []).slice().sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+      setRecipients(sortedRecipients);
+      setCurrentPage(1);
     } catch (err) {
       setError('Failed to fetch recipients.');
     }
@@ -144,37 +185,44 @@ export default function RecipientManagement() {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border">Name</th>
-                <th className="py-2 px-4 border">Email</th>
-                <th className="py-2 px-4 border">Mobile No</th>
-                <th className="py-2 px-4 border">Blood Group</th>
-                <th className="py-2 px-4 border">Gender</th>
-                <th className="py-2 px-4 border">Age</th>
-                <th className="py-2 px-4 border">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recipients.map((r) => (
-                <tr key={r._id}>
-                  <td className="py-2 px-4 border">{r.fullName}</td>
-                  <td className="py-2 px-4 border">{r.email}</td>
-                  <td className="py-2 px-4 border">{r.mobileNo}</td>
-                  <td className="py-2 px-4 border">{r.bloodGroup}</td>
-                  <td className="py-2 px-4 border">{r.gender}</td>
-                  <td className="py-2 px-4 border">{r.age}</td>
-                  <td className="py-2 px-4 border">
-                    <button className="text-blue-600 underline mr-2" onClick={() => handleView(r)}>View</button>
-                    <button className="text-green-600 underline" onClick={() => handleEdit(r)}>Edit</button>
-                  </td>
+        <>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border">
+              <thead>
+                <tr>
+                  <th className="py-2 px-4 border">Name</th>
+                  <th className="py-2 px-4 border">Email</th>
+                  <th className="py-2 px-4 border">Mobile No</th>
+                  <th className="py-2 px-4 border">Blood Group</th>
+                  <th className="py-2 px-4 border">Gender</th>
+                  <th className="py-2 px-4 border">Age</th>
+                  <th className="py-2 px-4 border">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {recipients.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((r) => (
+                  <tr key={r._id}>
+                    <td className="py-2 px-4 border">{r.fullName}</td>
+                    <td className="py-2 px-4 border">{r.email}</td>
+                    <td className="py-2 px-4 border">{r.mobileNo}</td>
+                    <td className="py-2 px-4 border">{r.bloodGroup}</td>
+                    <td className="py-2 px-4 border">{r.gender}</td>
+                    <td className="py-2 px-4 border">{r.age}</td>
+                    <td className="py-2 px-4 border">
+                      <button className="text-blue-600 underline mr-2" onClick={() => handleView(r)}>View</button>
+                      <button className="text-green-600 underline" onClick={() => handleEdit(r)}>Edit</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil(recipients.length / rowsPerPage))}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
       {/* Add Recipient Modal */}
       {showAdd && (

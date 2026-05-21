@@ -2,6 +2,43 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useToast } from '../context/ToastContext';
 
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-gray-600">
+      <div>Page {currentPage} of {totalPages}</div>
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Prev
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`px-3 py-1 rounded border ${page === currentPage ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUserHistory() {
   const { showToast } = useToast();
   const [history, setHistory] = useState([]);
@@ -13,6 +50,8 @@ export default function AdminUserHistory() {
   const [status, setStatus] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   const debounceTimer = useRef(null);
 
   useEffect(() => {
@@ -36,7 +75,8 @@ export default function AdminUserHistory() {
 
           const url = `http://localhost:5000/api/admin/history${params.toString() ? `?${params.toString()}` : ''}`;
           const response = await axios.get(url);
-          setHistory(response.data.history || []);
+          const sortedHistory = (response.data.history || []).slice().sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+          setHistory(sortedHistory);
           setError(null);
         } catch (err) {
           const message = err?.response?.data?.error || err?.message || 'Failed to load user history';
@@ -47,6 +87,7 @@ export default function AdminUserHistory() {
         }
       };
 
+      setCurrentPage(1);
       fetchHistory();
     }, 500); // 500ms debounce delay
 
@@ -188,7 +229,7 @@ export default function AdminUserHistory() {
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => (
+              {history.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item) => (
                 <tr key={`${item.type}-${item._id}`} className="border-b last:border-b-0 hover:bg-gray-50">
                   <td className="p-3 border text-gray-600">{new Date(item.date).toLocaleString()}</td>
                   <td className="p-3 border font-semibold text-gray-700">{item.type}</td>
@@ -201,6 +242,11 @@ export default function AdminUserHistory() {
               ))}
             </tbody>
           </table>
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil(history.length / rowsPerPage))}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
     </div>
