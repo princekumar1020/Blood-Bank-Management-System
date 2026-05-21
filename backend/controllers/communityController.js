@@ -63,6 +63,8 @@ export const getPosts = async (req, res) => {
         imageUrl: post.imageUrl,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
+        likes: post.likes || [],
+        comments: post.comments || [],
         totalLikes: post.likes ? post.likes.length : 0,
         totalComments: post.comments ? post.comments.length : 0,
         latestLikes: latest3Likes,

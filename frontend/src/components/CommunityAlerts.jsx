@@ -61,6 +61,7 @@ const CommunityAlerts = ({ user, requests }) => {
     const [submitting, setSubmitting] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [modalTab, setModalTab] = useState('feed');
+    const [currentPage, setCurrentPage] = useState(1);
     const [notificationCount, setNotificationCount] = useState(0);
     const [isPulsing, setIsPulsing] = useState(false);
     const feedRef = useRef(null);
@@ -88,27 +89,34 @@ const CommunityAlerts = ({ user, requests }) => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [postsRes, statsRes, activeUsersRes] = await Promise.all([
+                const [postsResult, activeUsersResult, healthTipsResult] = await Promise.allSettled([
                     API.get('/community/posts'),
-                    axios.get('/api/admin/dashboard'),
                     API.get('/community/active-users'),
+                    API.get('/community/health-tips'),
                 ]);
+
                 setAlerts([]);
-                setPosts(postsRes.data || []);
-                // track latest post
-                const latest = (postsRes.data || [])[0];
-                if (latest) latestPostRef.current = latest.createdAt;
-                const fetchedStats = statsRes.data || {};
-                const activeUsers = activeUsersRes.data || {};
-                setStats(fetchedStats);
-                setActiveDonors(activeUsers.donors ?? 0);
-                setActiveRecipients(activeUsers.recipients ?? 0);
-                // try fetch health tips
-                try {
-                    const tipsRes = await API.get('/community/health-tips');
-                    if (Array.isArray(tipsRes.data) && tipsRes.data.length) setHealthTips(tipsRes.data.slice(0,4));
-                } catch (e) {
-                    // keep defaults
+
+                if (postsResult.status === 'fulfilled') {
+                    const postsData = postsResult.value.data || [];
+                    setPosts(postsData);
+                    const latest = postsData[0];
+                    if (latest) latestPostRef.current = latest.createdAt;
+                } else {
+                    console.error('Community posts fetch failed:', postsResult.reason);
+                    setPosts([]);
+                }
+
+                if (activeUsersResult.status === 'fulfilled') {
+                    const activeUsers = activeUsersResult.value.data || {};
+                    setActiveDonors(activeUsers.donors ?? 0);
+                    setActiveRecipients(activeUsers.recipients ?? 0);
+                } else {
+                    console.error('Active users fetch failed:', activeUsersResult.reason);
+                }
+
+                if (healthTipsResult.status === 'fulfilled' && Array.isArray(healthTipsResult.value.data)) {
+                    setHealthTips(healthTipsResult.value.data.slice(0, 4));
                 }
             } catch (error) {
                 console.error('Community data loading failed:', error);
@@ -304,16 +312,19 @@ const CommunityAlerts = ({ user, requests }) => {
 
     const compatibility = compatibilityMatrix[selectedGroup] || compatibilityMatrix['A+'];
         const liveFeed = (posts && posts.length)
-            ? // sort newest first and take top 6
+            ? // sort newest first
                 posts
                     .slice()
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .slice(0, 6)
             : [
                 { _id: '1', authorName: 'Rahul', authorRole: 'Donor', content: 'Donated blood today ❤️', likes: [1,2,3], comments: [{_id:'c1'}], createdAt: new Date().toISOString() },
                 { _id: '2', authorName: 'Admin', authorRole: 'Admin', content: 'Blood donation camp on Sunday.', likes: [1,2], comments: [{_id:'c1'},{_id:'c2'}], createdAt: new Date(Date.now() - 10 * 60000).toISOString() },
                 { _id: '3', authorName: 'Ayesha', authorRole: 'Recipient', content: 'Thank you donor community 🙏', likes: [1,2,3,4], comments: [{_id:'c1'}], createdAt: new Date(Date.now() - 25 * 60000).toISOString() },
         ];
+
+    const POSTS_PER_PAGE = 4;
+    const totalPages = Math.max(1, Math.ceil(liveFeed.length / POSTS_PER_PAGE));
+    const paginatedFeed = liveFeed.slice((currentPage - 1) * POSTS_PER_PAGE, currentPage * POSTS_PER_PAGE);
 
     const isOwnPost = (post) => {
         const postAuthorId = post.author?._id || post.author;
@@ -382,7 +393,7 @@ const CommunityAlerts = ({ user, requests }) => {
                     <div className="flex items-center gap-3">
                         <div className="rounded-3xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">Latest first</div>
                         <button
-                            onClick={() => { setShowModal(true); setModalTab('create'); setNotificationCount(0); }}
+                            onClick={() => { setShowModal(true); setModalTab('create'); setCurrentPage(1); setNotificationCount(0); }}
                             className={`relative inline-flex items-center justify-center h-11 w-11 rounded-full bg-white/90 shadow-sm transition ${isPulsing ? 'bell-pulse' : ''}`}
                         >
                             <Bell className="text-red-600" size={18} />
@@ -541,7 +552,7 @@ const CommunityAlerts = ({ user, requests }) => {
 
         {showModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                <div className="w-full max-w-3xl rounded-[2rem] bg-white p-6 shadow-2xl">
+                <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <p className="text-sm uppercase tracking-[0.35em] text-red-600">Community Dialog</p>
@@ -554,22 +565,29 @@ const CommunityAlerts = ({ user, requests }) => {
                             Close
                         </button>
                     </div>
-                    <div className="mb-5 flex gap-3">
-                        {['feed', 'create'].map((tab) => (
+                    <div className="mb-5 flex flex-wrap gap-3">
+                        {[
+                            { key: 'feed', label: 'Feed' },
+                            { key: 'interactions', label: 'Activity' },
+                            { key: 'create', label: 'New Post' },
+                        ].map((tab) => (
                             <button
-                                key={tab}
-                                onClick={() => setModalTab(tab)}
-                                className={`rounded-full px-4 py-2 text-sm font-semibold ${modalTab === tab ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                key={tab.key}
+                                onClick={() => {
+                                    setModalTab(tab.key);
+                                    if (tab.key === 'feed') setCurrentPage(1);
+                                }}
+                                className={`rounded-full px-4 py-2 text-sm font-semibold ${modalTab === tab.key ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                             >
-                                {tab === 'feed' ? 'Feed' : 'New Post'}
+                                {tab.label}
                             </button>
                         ))}
                     </div>
-                    {displayInteractions.length > 0 && (
+                    {modalTab === 'interactions' && (
                         <div className="mb-5 rounded-[1.75rem] border border-gray-200 bg-red-50 p-4">
                             <p className="text-xs uppercase tracking-[0.35em] text-red-600">Your post interactions</p>
                             <div className="mt-3 space-y-3">
-                                {displayInteractions.map((interaction, idx) => (
+                                {displayInteractions.length ? displayInteractions.map((interaction, idx) => (
                                     <div key={`${interaction.type}-${idx}`} className="rounded-3xl bg-white p-3 shadow-sm border border-gray-100">
                                         <div className="flex items-center justify-between gap-3">
                                             <span className="text-sm font-semibold text-gray-900">{interaction.type === 'comment' ? 'Comment' : 'Like'}</span>
@@ -581,36 +599,70 @@ const CommunityAlerts = ({ user, requests }) => {
                                             {interaction.detail && interaction.type === 'like' ? ` on ${interaction.detail}` : ''}
                                         </p>
                                     </div>
-                                ))}
+                                )) : (
+                                    <div className="rounded-[1.75rem] border border-gray-200 bg-white p-5 text-center text-sm text-gray-500">No recent interactions yet.</div>
+                                )}
                             </div>
                         </div>
                     )}
                     {modalTab === 'feed' ? (
-                        <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2">
-                            {liveFeed.length ? liveFeed.map((item) => (
-                                <div key={item._id} className="rounded-[1.75rem] border border-gray-200 bg-red-50 p-5 shadow-sm">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-100 text-red-700 font-bold">{item.authorName?.charAt(0) || 'U'}</div>
-                                        <div>
-                                            <div className="font-semibold text-gray-900">{item.authorName || 'Unknown'}</div>
-                                            <div className="text-sm text-gray-500">{item.authorRole || 'Community'}</div>
+                        <>
+                            <div className="space-y-4 max-h-[360px] overflow-y-auto pr-2">
+                                {paginatedFeed.length ? paginatedFeed.map((item) => (
+                                    <div key={item._id} className="rounded-[1.75rem] border border-gray-200 bg-red-50 p-5 shadow-sm">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-100 text-red-700 font-bold">{item.authorName?.charAt(0) || 'U'}</div>
+                                            <div>
+                                                <div className="font-semibold text-gray-900">{item.authorName || 'Unknown'}</div>
+                                                <div className="text-sm text-gray-500">{item.authorRole || 'Community'}</div>
+                                            </div>
+                                            <span className="ml-auto text-xs uppercase tracking-[0.24em] text-gray-400">{formatRelativeTime(item.createdAt)}</span>
                                         </div>
-                                        <span className="ml-auto text-xs uppercase tracking-[0.24em] text-gray-400">{formatRelativeTime(item.createdAt)}</span>
+                                        <p className="text-gray-700 text-base leading-relaxed">“{item.content || item.message}”</p>
+                                        {item.imageUrl && (
+                                            <img
+                                                src={item.imageUrl}
+                                                alt="Community post"
+                                                className="mt-4 h-56 w-full rounded-3xl object-cover border border-gray-200"
+                                            />
+                                        )}
                                     </div>
-                                    <p className="text-gray-700 text-base leading-relaxed">“{item.content || item.message}”</p>
-                                    {item.imageUrl && (
-                                        <img
-                                            src={item.imageUrl}
-                                            alt="Community post"
-                                            className="mt-4 h-56 w-full rounded-3xl object-cover border border-gray-200"
-                                        />
-                                    )}
+                                )) : (
+                                    <div className="rounded-[1.75rem] border border-gray-200 bg-red-50 p-5 shadow-sm text-gray-500">No posts yet. Be the first to share.</div>
+                                )}
+                            </div>
+                            {totalPages > 1 && (
+                                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Prev
+                                    </button>
+                                    {Array.from({ length: totalPages }, (_, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => setCurrentPage(index + 1)}
+                                            className={`h-9 min-w-[36px] rounded-full text-sm font-semibold transition ${currentPage === index + 1 ? 'bg-red-600 text-white' : 'bg-white text-gray-700 border border-gray-200'}`}
+                                        >
+                                            {index + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Next
+                                    </button>
                                 </div>
-                            )) : (
-                                <div className="rounded-[1.75rem] border border-gray-200 bg-red-50 p-5 shadow-sm text-gray-500">No posts yet. Be the first to share.</div>
                             )}
-                        </div>
-                    ) : (
+                        </>
+                    ) : modalTab === 'create' ? (
                         <form onSubmit={handleCreatePost} className="space-y-4">
                             <select
                                 value={postDraft.category}
@@ -646,7 +698,7 @@ const CommunityAlerts = ({ user, requests }) => {
                                 </button>
                             </div>
                         </form>
-                    )}
+                    ) : null}
                 </div>
             </div>
         )}
