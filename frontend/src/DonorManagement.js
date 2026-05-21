@@ -1,6 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-gray-600">
+      <div>Page {currentPage} of {totalPages}</div>
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Prev
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`px-3 py-1 rounded border ${page === currentPage ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const statusColors = {
   Verified: 'text-blue-600 bg-blue-100',
   Regular: 'text-green-700 bg-green-100',
@@ -29,6 +66,8 @@ export default function DonorManagement() {
   const [showEdit, setShowEdit] = useState(false);
   const [showView, setShowView] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   const [form, setForm] = useState({
     fullName: '',
     bloodGroup: 'A+',
@@ -45,6 +84,7 @@ export default function DonorManagement() {
       params: { search, bloodType, status }
     });
     setData(res.data);
+    setCurrentPage(1);
     setLoading(false);
   };
 
@@ -131,7 +171,6 @@ export default function DonorManagement() {
           <option value="Pending">Pending</option>
         </select>
         <button onClick={fetchData} className="bg-gray-100 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-200">More Filters</button>
-        <button className="bg-gray-100 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-200">Export Data</button>
       </div>
       <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
         <table className="min-w-full text-sm">
@@ -148,7 +187,7 @@ export default function DonorManagement() {
             </tr>
           </thead>
           <tbody>
-            {data.donors.map(donor => (
+            {data.donors.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map(donor => (
               <tr key={donor.id} className="border-t">
                 <td className="py-2 px-4 font-mono">{donor.donorId}</td>
                 <td className="py-2 px-4">{donor.name}</td>
@@ -171,6 +210,11 @@ export default function DonorManagement() {
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={Math.max(1, Math.ceil((data?.donors?.length || 0) / rowsPerPage))}
+        onPageChange={setCurrentPage}
+      />
       {/* Add Donor Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">

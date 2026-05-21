@@ -3,6 +3,43 @@ import { Search, Mail, Eye, X, CheckCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { adminAPI } from '../services/api';
 
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 text-sm text-gray-600">
+      <div>Page {currentPage} of {totalPages}</div>
+      <div className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Prev
+        </button>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`px-3 py-1 rounded border ${page === currentPage ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className={`px-3 py-1 rounded border ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const statusStyles = {
   pending: 'bg-amber-100 text-amber-700',
   'in-progress': 'bg-amber-100 text-amber-700',
@@ -42,6 +79,8 @@ const AdminComplaints = () => {
   const [statusOption, setStatusOption] = useState('In Review');
   const [actionLoading, setActionLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -56,6 +95,7 @@ const AdminComplaints = () => {
       const data = response.data.complaints || response.data || [];
       console.log('Complaints fetched:', data.length);
       setComplaints(data);
+      setCurrentPage(1);
     } catch (error) {
       console.error('Error fetching complaints:', error);
       showToast('Unable to load complaints', 'error');
@@ -246,54 +286,63 @@ const AdminComplaints = () => {
             <p className="mt-3">Once users submit complaints, they will appear here for review.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left border-collapse">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Complaint ID</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">User</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Role</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Subject</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Message</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Status</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Created</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {complaints.map((complaint) => (
-                  <tr key={complaint._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{complaint._id.slice(-8)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.user?.fullName || complaint.user?.email || 'Unknown'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 capitalize">{complaint.user?.role || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{complaint.subject || complaint.title || 'No subject'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">{complaint.message || complaint.description || 'No message'}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${statusStyles[normalizeStatus(complaint.status)] || 'bg-slate-100 text-slate-700'}`}>
-                          {getStatusLabel(complaint.status)}
-                        </span>
-                        {complaint.responseHistory?.length > 0 && (
-                          <span className="inline-flex items-center justify-center w-5 h-5 bg-fuchsia-100 text-fuchsia-700 rounded-full text-[10px] font-bold" title="Reopened complaint">
-                            ↻
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(complaint.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                    <td className="px-6 py-4 space-x-2">
-                      <button
-                        onClick={() => openComplaintDetails(complaint)}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-                      >
-                        <Eye size={14} /> View
-                      </button>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left border-collapse">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Complaint ID</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">User</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Role</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Subject</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Message</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Created</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {complaints.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((complaint) => (
+                    <tr key={complaint._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-900">{complaint._id.slice(-8)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{complaint.user?.fullName || complaint.user?.email || 'Unknown'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 capitalize">{complaint.user?.role || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{complaint.subject || complaint.title || 'No subject'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">{complaint.message || complaint.description || 'No message'}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${statusStyles[normalizeStatus(complaint.status)] || 'bg-slate-100 text-slate-700'}`}>
+                            {getStatusLabel(complaint.status)}
+                          </span>
+                          {complaint.responseHistory?.length > 0 && (
+                            <span className="inline-flex items-center justify-center w-5 h-5 bg-fuchsia-100 text-fuchsia-700 rounded-full text-[10px] font-bold" title="Reopened complaint">
+                              ↻
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{new Date(complaint.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                      <td className="px-6 py-4 space-x-2">
+                        <button
+                          onClick={() => openComplaintDetails(complaint)}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+                        >
+                          <Eye size={14} /> View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-6 py-4">
+              <PaginationControls
+                currentPage={currentPage}
+                totalPages={Math.max(1, Math.ceil(complaints.length / rowsPerPage))}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </>
         )}
       </div>
 
