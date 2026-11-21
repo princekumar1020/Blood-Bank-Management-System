@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { LayoutDashboard, Droplet, Users, Handshake, Calendar, Inbox, MessageSquare, History, Package, AlertTriangle, BarChart3, UserRound, Activity, LogOut } from 'lucide-react';
 import { useToast } from './context/ToastContext';
 import AdminUserHistory from './components/AdminUserHistory';
 import RecipientManagement from './RecipientManagement';
@@ -204,6 +205,17 @@ function AdminAppointments() {
   const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, action: null });
   const [approveForm, setApproveForm] = useState({ tokenNo: '', timeSlot: '' });
 
+  const timeSlots = [
+    '09:00 - 10:00',
+    '10:00 - 11:00',
+    '11:00 - 12:00',
+    '12:00 - 13:00',
+    '13:00 - 14:00',
+    '14:00 - 15:00',
+    '15:00 - 16:00',
+    '16:00 - 17:00',
+  ];
+
   const fetchAppointments = () => {
     setLoading(true);
     setCurrentPage(1);
@@ -394,13 +406,16 @@ function AdminAppointments() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Time Slot</label>
-                <input
-                  type="text"
+                <select
                   className="w-full border rounded px-3 py-2"
                   value={approveForm.timeSlot}
                   onChange={e => setApproveForm({ ...approveForm, timeSlot: e.target.value })}
-                  placeholder="e.g., 10:00-10:30"
-                />
+                >
+                  <option value="">Select a time slot</option>
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex gap-2 justify-end">
@@ -441,26 +456,26 @@ function AdminAppointments() {
 }
 
 const sidebarLinks = [
-  { label: 'Dashboard', icon: '🏠' },
-  { label: 'Donors', icon: '🩸' },
-  { label: 'Recipients', icon: '🤝' },
-  { label: 'Appointments', icon: '📅' },
-  { label: 'Requests', icon: '📨' },
-  { label: 'Complaints', icon: '📋' },
-  { label: 'User History', icon: '📜' },
-  { label: 'Inventory', icon: '📦' },
-  { label: 'Alerts', icon: '⚠️' },
-  { label: 'Analytics', icon: '📊' },
+  { label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+  { label: 'Donors', icon: <Droplet size={18} /> },
+  { label: 'Recipients', icon: <Handshake size={18} /> },
+  { label: 'Appointments', icon: <Calendar size={18} /> },
+  { label: 'Requests', icon: <Inbox size={18} /> },
+  { label: 'Complaints', icon: <MessageSquare size={18} /> },
+  { label: 'User History', icon: <History size={18} /> },
+  { label: 'Inventory', icon: <Package size={18} /> },
+  { label: 'Alerts', icon: <AlertTriangle size={18} /> },
+  { label: 'Analytics', icon: <BarChart3 size={18} /> },
 ];
 
 function StatCard({ title, value, subtitle, icon, color }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 flex-1 min-w-[180px] border border-gray-100 flex flex-col gap-1">
-      <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold mb-1">
-        <span className="text-lg">{icon}</span> {title}
+    <div className="dashboard-stat-card p-5 flex flex-col gap-1">
+      <div className={`flex items-center gap-2 text-sm font-semibold mb-1 ${color}`}>
+        <span aria-hidden="true">{icon}</span> {title}
       </div>
       <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className={`text-xs mt-1 ${color}`}>{subtitle}</div>
+      {subtitle && <div className={`text-xs mt-1 ${color}`}>{subtitle}</div>}
     </div>
   );
 }
@@ -477,26 +492,55 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  useEffect(() => {
+  const fetchDashboard = useCallback(async () => {
     setLoading(true);
-    axios.get('http://localhost:5000/api/admin/dashboard')
-      .then(res => {
-        setData(res.data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to load dashboard data');
-        setLoading(false);
-      });
+    setError(null);
+    try {
+      const res = await axios.get('http://localhost:5000/api/admin/dashboard');
+      setData(res.data);
+    } catch (err) {
+      console.error('Failed to load admin dashboard', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  if (error) return <div className="flex items-center justify-center min-h-screen text-red-600">{error}</div>;
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  if (loading) return <div role="status" aria-live="polite" className="flex items-center justify-center min-h-screen">Loading admin dashboard...</div>;
+  if (error) return (
+    <div className="workspace-page">
+      <div role="alert" className="ui-card p-6 text-center">
+        <p className="mb-4 text-red-700">{error}</p>
+        <button type="button" onClick={fetchDashboard} className="ui-btn ui-btn-primary">Try again</button>
+      </div>
+    </div>
+  );
 
   // fallback for missing data
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const inventory = bloodGroups.map(bg => data?.bloodInventory?.[bg] || 0);
   const trend = data?.trend || [];
+  const inventoryMax = Math.max(...inventory, 1);
+  const maxTrendCount = Math.max(...trend.map(item => item.count), 1);
+  const trendPoints = trend.map((item, index) => ({
+    ...item,
+    x: trend.length === 1 ? 150 : 10 + index * (280 / (trend.length - 1)),
+    y: 90 - (item.count / maxTrendCount) * 80
+  }));
+  const inventoryTotal = inventory.reduce((total, units) => total + units, 0);
+  const inventoryColors = ['#c8102e', '#e5485d', '#a50e27', '#f97316', '#eab308', '#15803d', '#2563eb', '#7c3aed'];
+  let inventoryAngle = 0;
+  const inventoryGradient = inventoryTotal > 0
+    ? `conic-gradient(${inventory.map((units, index) => {
+      const start = inventoryAngle;
+      inventoryAngle += (units / inventoryTotal) * 100;
+      return `${inventoryColors[index]} ${start}% ${inventoryAngle}%`;
+    }).join(', ')})`
+    : 'conic-gradient(#e5e7eb 0% 100%)';
 
   const handleSendEmergencyAlert = async () => {
     if (!alertMessage.trim()) {
@@ -527,19 +571,19 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div>
-      <div className="flex min-h-screen bg-[#f7f8fa]">
+    <div className="dashboard-shell admin-shell">
         {/* Sidebar */}
-        <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-6 px-3 min-h-screen">
-          <div className="flex items-center gap-2 mb-8 px-2">
-            <span className="text-[#e20000] text-2xl">🩸</span>
-            <span className="font-extrabold text-lg tracking-tight text-gray-900">BloodBank Plus</span>
+        <aside className="dashboard-sidebar admin-sidebar">
+          <div className="dashboard-brand mb-6 px-2">
+            <Droplet className="dashboard-brand-icon" size={25} aria-hidden="true" />
+            <span>BloodBank Plus</span>
           </div>
-          <nav className="flex flex-col gap-1">
+          <nav aria-label="Admin navigation" className="flex flex-col gap-1">
             {sidebarLinks.map(link => (
               <button
                 key={link.label}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-left font-semibold text-gray-700 hover:bg-[#ffeaea] transition ${activeSidebar === link.label ? 'bg-[#ffeaea] text-[#e20000]' : ''}`}
+                aria-current={activeSidebar === link.label ? 'page' : undefined}
+                className={`dashboard-nav-item flex w-full items-center gap-3 px-4 py-2 text-left font-semibold ${activeSidebar === link.label ? 'dashboard-nav-item-active' : ''}`}
                 onClick={() => {
                   setActiveSidebar(link.label);
                   if (link.label === 'Inventory') {
@@ -553,19 +597,19 @@ export default function AdminDashboard() {
                   }
                 }}
               >
-                <span>{link.icon}</span> {link.label}
+                <span className="flex-shrink-0" aria-hidden="true">{link.icon}</span> {link.label}
               </button>
             ))}
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <div className="dashboard-main">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="dashboard-header">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{activeSidebar}</h1>
-              <p className="text-gray-500 text-sm">
+              <h1 className="text-xl font-bold text-gray-900">{activeSidebar}</h1>
+              <p className="text-gray-500 text-sm hidden sm:block">
                 {activeSidebar === 'Dashboard' && 'Overview of blood bank operations and statistics'}
                 {activeSidebar === 'Donors' && 'List of all registered donors'}
                 {activeSidebar === 'Recipients' && 'List of all registered recipients'}
@@ -576,43 +620,53 @@ export default function AdminDashboard() {
                 {activeSidebar === 'Analytics' && 'Donation and request analytics'}
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700 font-semibold">Admin Dashboard</span>
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/admin-dashboard/complaints')}
-                className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+                className="ui-btn ui-btn-primary"
               >
                 Complaints
               </button>
-              <button className="text-[#e20000] font-bold hover:underline">Logout</button>
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.clear();
+                  navigate('/');
+                }}
+                aria-label="Log out"
+                className="ui-btn ui-btn-outline"
+              >
+                <LogOut size={18} aria-hidden="true" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </div>
           </div>
+          <main className="dashboard-content">
           {/* Content based on sidebar selection */}
           {activeSidebar === 'Dashboard' && (
             <>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <StatCard title="Total Donors" value={data.totalDonors} subtitle="" icon="👤" color="text-green-600" />
-                <StatCard title="Active Recipients" value={data.totalRecipients} subtitle="" icon="✅" color="text-blue-600" />
-                <StatCard title="Total Units" value={data.totalUnits} subtitle="" icon="🔥" color="text-orange-600" />
-                <StatCard title="Active Alerts" value={data.activeAlerts} subtitle="" icon="⚠️" color="text-red-600" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <StatCard title="Total Donors" value={data.totalDonors} icon={<Users size={20} />} color="text-green-600" />
+                <StatCard title="Active Recipients" value={data.totalRecipients} icon={<UserRound size={20} />} color="text-blue-600" />
+                <StatCard title="Total Units" value={data.totalUnits} icon={<Droplet size={20} />} color="text-orange-600" />
+                <StatCard title="Active Alerts" value={data.activeAlerts} icon={<Activity size={20} />} color="text-red-600" />
               </div>
               {/* Charts Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
                 <div className="bg-white rounded-xl p-6 border border-gray-100">
                   <div className="font-semibold mb-2">Blood Inventory by Type</div>
                   {/* Placeholder for bar chart */}
                   <div className="h-48 flex items-end gap-2">
                     {inventory.map((val, i) => (
-                      <div key={i} className="flex flex-col items-center flex-1">
-                        <div className="w-7 rounded-t bg-[#e20000] mb-1" style={{ height: `${val * 2}px` }}></div>
+                      <div key={bloodGroups[i]} className="flex h-full flex-col items-center justify-end flex-1">
+                        <div className="w-7 rounded-t bg-[#e20000] mb-1" style={{ height: `${(val / inventoryMax) * 80}%` }}></div>
                         <div className="text-xs text-gray-500">{bloodGroups[i]}</div>
                       </div>
                     ))}
                   </div>
                   <div className="flex justify-between text-xs mt-2">
                     <span className="text-[#e20000]">Available Units</span>
-                    <span className="text-blue-600">Requested</span>
                   </div>
                 </div>
                 <div className="bg-white rounded-xl p-6 border border-gray-100">
@@ -620,34 +674,42 @@ export default function AdminDashboard() {
                   {/* Placeholder for line chart */}
                   <div className="h-48 flex items-end">
                     <svg width="100%" height="100%" viewBox="0 0 300 100" className="w-full h-full">
-                      <polyline fill="none" stroke="#e20000" strokeWidth="3" points={trend.map((t, i) => `${10 + i * 50},${100 - t.count * 0.5}`).join(' ')} />
-                      {trend.map((t, i) => (
-                        <circle key={i} cx={10 + i * 50} cy={100 - t.count * 0.5} r="4" fill="#e20000" />
+                      <polyline fill="none" stroke="#c8102e" strokeWidth="3" points={trendPoints.map(point => `${point.x},${point.y}`).join(' ')} />
+                      {trendPoints.map((point, i) => (
+                        <circle key={`${point.month}-${i}`} cx={point.x} cy={point.y} r="4" fill="#c8102e" />
                       ))}
                     </svg>
                   </div>
                   <div className="flex justify-between text-xs mt-2 text-gray-500">
-                    {trend.map((t, i) => (
-                      <span key={i}>{t.month}</span>
+                    {trendPoints.map((point, i) => (
+                      <span key={`${point.month}-${i}`}>{point.month}</span>
                     ))}
                   </div>
                 </div>
               </div>
               {/* Bottom Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <div className="bg-white rounded-xl p-6 border border-gray-100">
-                  <div className="font-semibold mb-2">Blood Distribution</div>
-                  {/* Placeholder for pie chart */}
-                  <div className="flex items-center justify-center h-40">
-                    <svg width="120" height="120" viewBox="0 0 32 32">
-                      <circle r="16" cx="16" cy="16" fill="#f3f3f3" />
-                      <path d="M16 16 L16 0 A16 16 0 0 1 31.36 9.6 Z" fill="#e20000" />
-                      <path d="M16 16 L31.36 9.6 A16 16 0 1 1 16 0 Z" fill="#ffb703" />
-                    </svg>
+                  <div className="font-semibold mb-2">Inventory Distribution</div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-4">
+                    <div
+                      role="img"
+                      aria-label={`Blood inventory distribution, ${inventoryTotal} total units`}
+                      className="h-32 w-32 flex-shrink-0 rounded-full"
+                      style={{ background: inventoryGradient }}
+                    />
+                    <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-2 text-sm sm:w-auto">
+                      {bloodGroups.map((group, index) => (
+                        <li key={group} className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: inventoryColors[index] }} />
+                          <span className="text-gray-600">{group}</span>
+                          <span className="ml-auto font-semibold text-gray-900">{inventory[index]}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="flex justify-center gap-4 text-xs mt-2">
-                    <span className="text-[#e20000]">Emergency 35%</span>
-                    <span className="text-[#ffb703]">Routine 65%</span>
+                  <div className="text-center text-xs text-gray-500">
+                    {inventoryTotal} units currently available
                   </div>
                 </div>
                 <div className="bg-white rounded-xl p-6 border border-gray-100">
@@ -730,8 +792,8 @@ export default function AdminDashboard() {
               Feature coming soon: {activeSidebar}
             </div>
           )}
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
   );
 }

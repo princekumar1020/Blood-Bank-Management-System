@@ -8,7 +8,14 @@ const DonationHistory = ({ role }) => {
     const [requests, setRequests] = useState([]);
     const [filteredRequests, setFilteredRequests] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [userName, setUserName] = useState('Valued Donor');
+    const [userName, setUserName] = useState(() => {
+        try {
+            const user = JSON.parse(sessionStorage.getItem('user') || 'null');
+            return user?.fullName || user?.name || 'Valued Donor';
+        } catch {
+            return 'Valued Donor';
+        }
+    });
     
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,8 +27,9 @@ const DonationHistory = ({ role }) => {
         const fetchUserData = async () => {
             try {
                 const res = await axios.get('http://localhost:5000/api/user/profile');
-                if (res.data && res.data.name) {
-                    setUserName(res.data.name);
+                const profileName = res.data?.fullName || res.data?.name;
+                if (profileName) {
+                    setUserName(profileName);
                 }
             } catch (err) {
                 console.error('Error fetching user profile:', err);
@@ -316,4 +324,3 @@ const DonationHistory = ({ role }) => {
 };
 
 export default DonationHistory;
-

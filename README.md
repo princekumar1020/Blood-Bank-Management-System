@@ -1,44 +1,72 @@
 # Blood Bank Management System
 
-Full stack class project. This is the central repository for the MERN stack Blood Bank Management project.
+One-line summary: A MERN full-stack Blood Bank Management System (API + React UI).
 
-## Installed Packages
+## Prerequisites
+- Node.js (>=16) and npm
+- MongoDB (local or Atlas)
+- Optional: Docker for containerized runs
 
-### Backend Dependencies (`/backend`)
-* **express**: The core web framework for routing and handling HTTP requests.
-* **mongoose**: The Object Data Modeling (ODM) library used to connect to and interact with MongoDB.
-* **cors**: Middleware that allows our React frontend to securely make API requests to this backend.
-* **dotenv**: Loads secure environment variables (like database URIs and port numbers) from a `.env` file.
-* **bcryptjs**: A library to help you hash passwords.
+## Quick setup (development)
+Run backend and frontend in separate terminals.
 
-### Frontend Dependencies (`/frontend`)
-* **react** / **react-dom**: The core libraries for building the user interface.
-* **vite**: The build tool and local development server, providing fast Hot Module Replacement (HMR).
-* **axios**: A promise-based HTTP client used to fetch data from our Node.js backend.
-* **react-router-dom**: Handles client-side routing, allowing navigation between different pages (e.g., Dashboard, Login) without reloading the browser.
+Backend (API)
 
----
-
-## How to Run the Project Locally
-
-To test the application, you must run the frontend and backend simultaneously in **two separate terminal windows**.
-
-### 1. Start the Backend Server
-Open your first terminal, navigate to the root project folder, and execute:
-
-\`\`\`bash
+```bash
 cd backend
 npm install
-node server.js
-\`\`\`
-*The backend API will start listening for requests (default is usually `http://localhost:5000`).*
-
-### 2. Start the Frontend Server
-Open a **new** terminal window, navigate to the root project folder, and execute:
-
-\`\`\`bash
-cd frontend 
-npm install
+# dev with auto-reload
 npm run dev
-\`\`\`
-*Vite will start the React application. Open your browser and navigate to the Local URL provided in the terminal (usually `http://localhost:5173`).*
+# or start normally
+npm start
+```
+
+Notes:
+- Backend entrypoint: [backend/index.js](backend/index.js#L1-L200)
+- Default port: `5000` (env `PORT` can override)
+- DB env: `MONGODB_URI` or `MONGO_URI` (falls back to `mongodb://localhost/bloodbank`)
+
+Frontend (React)
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Notes:
+- Frontend scripts: [frontend/package.json](frontend/package.json#L1-L200)
+- `npm start` runs the React dev server (CRA). Default port is usually `3000`.
+
+## Environment variables
+Create a `.env` in `/backend` or set environment variables. Example keys:
+
+```
+MONGODB_URI=
+PORT=5000
+JWT_SECRET=your_jwt_secret
+EMAIL_USER=you@example.com
+EMAIL_PASS=app-password
+```
+
+Consider adding `/backend/.env.example` and NOT committing real secrets.
+
+## Seed data
+There is a `scripts/` folder with example seeding; you can add or run a seed script to populate test users, inventory, and requests.
+
+## Run checklist before demo or interview
+- Ensure MongoDB is running or configured (Atlas connection string in `MONGODB_URI`).
+- Run `npm install` in both `/backend` and `/frontend`.
+- Start backend then frontend and open the UI in the browser.
+
+## Screenshots / Demo
+- Add screenshots under `docs/screenshots/` and reference them here.
+
+## Helpful next steps to make this placement-ready
+- Add `backend/.env.example` (examples of required env keys)
+- Add `scripts/seed.js` to populate demo data
+- Add basic tests with Jest + Supertest for core APIs
+- Add CI (GitHub Actions) to run lint and tests on PRs
+- Add Dockerfile and `docker-compose.yml` for reproducible local development
+
+If you want, I can add `/backend/.env.example` and a simple `scripts/seed.js` next — which should I create first?

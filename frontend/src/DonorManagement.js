@@ -46,7 +46,7 @@ const statusColors = {
 
 function StatCard({ title, value, color }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 flex-1 min-w-[120px] border border-gray-100 flex flex-col gap-1 text-center">
+    <div className="dashboard-stat-card p-5 flex-1 min-w-[120px] flex flex-col gap-1 text-center">
       <div className={`text-lg font-bold ${color}`}>{value}</div>
       <div className="text-xs text-gray-500 font-semibold mt-1">{title}</div>
     </div>
@@ -59,6 +59,7 @@ const genders = ['Male', 'Female', 'Other'];
 export default function DonorManagement() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState('');
   const [bloodType, setBloodType] = useState('');
   const [status, setStatus] = useState('');
@@ -80,12 +81,19 @@ export default function DonorManagement() {
 
   const fetchData = async () => {
     setLoading(true);
-    const res = await axios.get('http://localhost:5000/api/donor-management/list', {
-      params: { search, bloodType, status }
-    });
-    setData(res.data);
-    setCurrentPage(1);
-    setLoading(false);
+    setError("");
+    try {
+      const res = await axios.get('http://localhost:5000/api/donor-management/list', {
+        params: { search, bloodType, status }
+      });
+      setData(res.data);
+      setCurrentPage(1);
+    } catch (err) {
+      console.error("Failed to load donor management data", err);
+      setError("Unable to load donors. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -133,46 +141,55 @@ export default function DonorManagement() {
     fetchData();
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (loading) return <div role="status" aria-live="polite" className="flex items-center justify-center min-h-screen">Loading donors...</div>;
+  if (error) return (
+    <div className="workspace-page">
+      <div role="alert" className="ui-card p-6 text-center">
+        <p className="mb-4 text-red-700">{error}</p>
+        <button type="button" onClick={fetchData} className="ui-btn ui-btn-primary">Try again</button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-4">
+    <div className="workspace-page">
+      <div className="workspace-toolbar">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Donor Management</h1>
           <p className="text-gray-500 text-xs">Search and manage registered blood donors</p>
         </div>
-        <button onClick={handleAddDonor} className="bg-[#e20000] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#b30000]">+ Add Donor</button>
+        <button onClick={handleAddDonor} className="ui-btn ui-btn-primary">+ Add Donor</button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard title="Total Donors" value={data.stats.totalDonors} color="text-blue-700" />
         <StatCard title="Regular Donors" value={data.stats.regularDonors} color="text-green-700" />
         <StatCard title="Verified" value={data.stats.verifiedDonors} color="text-blue-600" />
         <StatCard title="Pending" value={data.stats.pendingDonors} color="text-orange-600" />
       </div>
-      <div className="flex gap-2 mb-4">
+      <div className="management-filters">
         <input
           type="text"
+          aria-label="Search donors by name or ID"
           placeholder="Search by name or ID..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border rounded px-3 py-2 text-sm w-64"
+          className="ui-input min-w-0 text-sm"
         />
-        <select value={bloodType} onChange={e => setBloodType(e.target.value)} className="border rounded px-2 py-2 text-sm">
+        <select aria-label="Filter by blood type" value={bloodType} onChange={e => setBloodType(e.target.value)} className="ui-input text-sm">
           <option value="">All Blood Types</option>
           {bloodGroups.map(bg => (
             <option key={bg} value={bg}>{bg}</option>
           ))}
         </select>
-        <select value={status} onChange={e => setStatus(e.target.value)} className="border rounded px-2 py-2 text-sm">
+        <select aria-label="Filter by donor status" value={status} onChange={e => setStatus(e.target.value)} className="ui-input text-sm">
           <option value="">All Status</option>
           <option value="Verified">Verified</option>
           <option value="Regular">Regular</option>
           <option value="Pending">Pending</option>
         </select>
-        <button onClick={fetchData} className="bg-gray-100 px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-200">More Filters</button>
+        <button onClick={fetchData} className="ui-btn ui-btn-outline">Refresh</button>
       </div>
-      <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="table-scroll overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-gray-700">
@@ -217,8 +234,8 @@ export default function DonorManagement() {
       />
       {/* Add Donor Modal */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <form onSubmit={submitAddDonor} className="bg-white rounded-xl p-8 shadow-lg flex flex-col gap-4 min-w-[320px]">
+        <div className="modal-overlay">
+          <form onSubmit={submitAddDonor} className="modal-panel p-6 flex flex-col gap-4">
             <h2 className="text-lg font-bold mb-2">Add Donor</h2>
             <label className="text-sm">Full Name
               <input type="text" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} className="block w-full border rounded px-2 py-1 mt-1" required />
@@ -254,8 +271,8 @@ export default function DonorManagement() {
       )}
       {/* Edit Donor Modal */}
       {showEdit && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <form onSubmit={submitEditDonor} className="bg-white rounded-xl p-8 shadow-lg flex flex-col gap-4 min-w-[320px]">
+        <div className="modal-overlay">
+          <form onSubmit={submitEditDonor} className="modal-panel p-6 flex flex-col gap-4">
             <h2 className="text-lg font-bold mb-2">Edit Donor</h2>
             <label className="text-sm">Full Name
               <input type="text" value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} className="block w-full border rounded px-2 py-1 mt-1" required />
@@ -288,8 +305,8 @@ export default function DonorManagement() {
       )}
       {/* View Donor Modal */}
       {showView && selectedDonor && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 shadow-lg min-w-[320px] flex flex-col gap-2">
+        <div className="modal-overlay">
+          <div className="modal-panel p-6 flex flex-col gap-2">
             <h2 className="text-lg font-bold mb-2">Donor Details</h2>
             <div><b>Name:</b> {selectedDonor.fullName}</div>
             <div><b>Blood Group:</b> {selectedDonor.bloodGroup}</div>

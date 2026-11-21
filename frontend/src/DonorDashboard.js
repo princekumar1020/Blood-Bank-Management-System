@@ -147,19 +147,20 @@ export default function DonorDashboard() {
   }, [activePage, userId]);
 
   return (
-    <div className="min-h-screen bg-[#f3f3f5] dark:bg-[#0a0a0a] flex font-sans">
+    <div className="dashboard-shell">
       {/* Sidebar */}
-      <aside className="w-64 bg-white/95 dark:bg-gray-900/90 border-r border-gray-200 dark:border-gray-800 flex flex-col py-8 px-4 min-h-screen">
-        <div className="flex items-center gap-2 mb-10 px-2">
-          <Droplet className="text-[#e20000] fill-transparent stroke-2 h-7 w-7" />
-          <span className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">BloodBank Plus</span>
+      <aside className="dashboard-sidebar py-8 px-4">
+        <div className="dashboard-brand mb-10 px-2">
+          <Droplet className="dashboard-brand-icon" size={25} aria-hidden="true" />
+          <span>BloodBank Plus</span>
         </div>
-        <nav className="flex-1">
+        <nav className="flex-1" aria-label="Donor navigation">
           <ul className="space-y-2">
             {sidebarLinks.map((link) => (
               <li key={link.label}>
                 <button
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-base transition-colors ${activePage === link.label ? 'bg-[#ffeaea] text-[#e20000] dark:bg-[#2a0909] dark:text-[#ff6b6b]' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                  aria-current={activePage === link.label ? 'page' : undefined}
+                  className={`dashboard-nav-item w-full flex items-center gap-3 px-4 py-3 font-semibold text-base ${activePage === link.label ? 'dashboard-nav-item-active' : ''}`}
                   onClick={() => setActivePage(link.label)}
                 >
                   {link.icon}
@@ -172,9 +173,9 @@ export default function DonorDashboard() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="dashboard-main flex flex-col min-h-screen">
         {/* Top Navbar */}
-        <header className="flex items-center justify-between px-10 py-6 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90">
+        <header className="dashboard-header">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{activePage}</h2>
           <div className="flex items-center gap-6">
             <button
@@ -191,12 +192,12 @@ export default function DonorDashboard() {
         </header>
 
         {/* Main Page Content */}
-        <main className="flex-1 p-10">
+        <main className="dashboard-content flex-1">
           {activePage === "Dashboard" && (
             loading ? <div>Loading...</div> : error ? <div className="text-red-600">{error}</div> : (
               <React.Fragment>
                 {/* Welcome Banner */}
-                <div className="bg-[#e20000] text-white rounded-2xl flex items-center justify-between px-8 py-6 mb-8 shadow-md">
+                <div className="bg-[#e20000] text-white rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 px-6 sm:px-8 py-6 mb-8 shadow-md">
                   <div>
                     <h1 className="text-2xl font-bold mb-1">Welcome Back, {stats?.name || "User"}!</h1>
                     <p className="text-base font-medium">Thank you for being a lifesaver. {/* TODO: Next donation eligibility logic */}</p>
@@ -209,22 +210,22 @@ export default function DonorDashboard() {
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center shadow border border-gray-100 dark:border-gray-700">
+                  <div className="dashboard-stat-card p-6 flex flex-col items-center">
                     <Droplet className="text-[#e20000] w-7 h-7 mb-2" />
                     <div className="text-2xl font-bold">{stats?.totalDonations ?? 0}</div>
                     <div className="text-gray-500 dark:text-gray-400 font-semibold">Total Donations</div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center shadow border border-gray-100 dark:border-gray-700">
+                  <div className="dashboard-stat-card p-6 flex flex-col items-center">
                     <Heart className="text-blue-500 w-7 h-7 mb-2" />
                     <div className="text-2xl font-bold">{stats?.livesSaved ?? 0}</div>
                     <div className="text-gray-500 dark:text-gray-400 font-semibold">Lives Saved</div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center shadow border border-gray-100 dark:border-gray-700">
+                  <div className="dashboard-stat-card p-6 flex flex-col items-center">
                     <Award className="text-green-500 w-7 h-7 mb-2" />
                     <div className="text-2xl font-bold">{stats?.certificates ?? 0}</div>
                     <div className="text-gray-500 dark:text-gray-400 font-semibold">Certificates</div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 flex flex-col items-center shadow border border-gray-100 dark:border-gray-700">
+                  <div className="dashboard-stat-card p-6 flex flex-col items-center">
                     <TrendingUp className="text-purple-500 w-7 h-7 mb-2" />
                     <div className="text-2xl font-bold">{stats?.bloodGroup ?? "Any"}</div>
                     <div className="text-gray-500 dark:text-gray-400 font-semibold">Blood Group</div>
@@ -234,7 +235,7 @@ export default function DonorDashboard() {
                 {/* Progress and Appointment Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Regular Donor Progress */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow border border-gray-100 dark:border-gray-700">
+                  <div className="dashboard-stat-card p-6">
                     <div className="font-bold text-lg mb-2">Regular Donor Progress</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                        {historyData.filter(h => h.status === 'Completed').length < 10 ? (
@@ -273,7 +274,7 @@ export default function DonorDashboard() {
                     </div>
                   </div>
                   {/* Upcoming Appointment */}
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
+                  <div className="dashboard-stat-card p-6 flex flex-col justify-between">
                     <div className="font-bold text-lg mb-2">Upcoming Appointment</div>
                     <div className="flex-1 flex flex-col items-center justify-center">
                       {latestAppointment ? (
@@ -306,7 +307,10 @@ export default function DonorDashboard() {
           )}
 
           {activePage === "Certificates" && (
-            <Certificates requests={historyData} userName={stats?.name} />
+            <Certificates
+              requests={historyData}
+              userName={stats?.name || user?.fullName || user?.name || "Valued Donor"}
+            />
           )}
 
           {activePage === "Complaints" && (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { AlertTriangle, Droplet, Handshake, Users } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 export default function Analytics() {
@@ -74,37 +75,37 @@ export default function Analytics() {
     <div className="space-y-6">
       {/* Key Metrics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+        <div className="dashboard-stat-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-500">Total Donors</h3>
-            <span className="text-2xl">👤</span>
+            <Users className="text-primary" size={22} aria-hidden="true" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{analytics.totalDonors || 0}</p>
           <p className="text-xs text-gray-500 mt-2">Registered donors</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+        <div className="dashboard-stat-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-500">Active Recipients</h3>
-            <span className="text-2xl">🤝</span>
+            <Handshake className="text-primary" size={22} aria-hidden="true" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{analytics.totalRecipients || 0}</p>
           <p className="text-xs text-gray-500 mt-2">Registered recipients</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+        <div className="dashboard-stat-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-500">Available Units</h3>
-            <span className="text-2xl">🩸</span>
+            <Droplet className="text-primary" size={22} aria-hidden="true" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{analytics.totalUnits || 0}</p>
           <p className="text-xs text-gray-500 mt-2">Total in inventory</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+        <div className="dashboard-stat-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-500">Active Alerts</h3>
-            <span className="text-2xl">⚠️</span>
+            <AlertTriangle className="text-primary" size={22} aria-hidden="true" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{analytics.activeAlerts || 0}</p>
           <p className="text-xs text-gray-500 mt-2">Pending requests</p>
@@ -112,29 +113,31 @@ export default function Analytics() {
       </div>
 
       {/* Donation Trend */}
-      <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+      <div className="dashboard-stat-card p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Donation Trend</h2>
             <p className="text-sm text-gray-500">Last 6 months of completed donations</p>
           </div>
         </div>
-        <div className="flex items-end justify-between h-64 gap-2">
-          {analytics.trend && analytics.trend.length > 0 ? (
-            analytics.trend.map((item, index) => {
-              const maxCount = Math.max(...analytics.trend.map(t => t.count), 1);
-              const heightPercent = (item.count / maxCount) * 100;
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full bg-gradient-to-t from-red-600 to-red-400 rounded-t" style={{ height: `${heightPercent}%`, minHeight: '4px' }}></div>
-                  <span className="text-xs font-semibold text-gray-600">{item.month}</span>
-                  <span className="text-xs text-gray-500">{item.count} donations</span>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-center text-gray-500">No donation data available</p>
-          )}
+        <div className="analytics-chart-scroll">
+          <div className="analytics-chart-bars flex items-end justify-between h-64 gap-2">
+            {analytics.trend && analytics.trend.length > 0 ? (
+              analytics.trend.map((item, index) => {
+                const maxCount = Math.max(...analytics.trend.map(t => t.count), 1);
+                const heightPercent = (item.count / maxCount) * 100;
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full bg-gradient-to-t from-red-600 to-red-400 rounded-t" style={{ height: `${heightPercent}%`, minHeight: '4px' }}></div>
+                    <span className="text-xs font-semibold text-gray-600">{item.month}</span>
+                    <span className="text-xs text-gray-500">{item.count} donations</span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-center text-gray-500">No donation data available</p>
+            )}
+          </div>
         </div>
       </div>
 

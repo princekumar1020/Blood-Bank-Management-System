@@ -64,7 +64,9 @@ export default function Toast({ message, type = "success", onClose, duration = 3
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border transition-all duration-300 ${
+      role={type === "error" ? "alert" : "status"}
+      aria-live={type === "error" ? "assertive" : "polite"}
+      className={`toast-surface w-full p-4 border transition-all duration-300 ${
         isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
       } ${getToastStyles()}`}
     >
@@ -77,10 +79,12 @@ export default function Toast({ message, type = "success", onClose, duration = 3
         </div>
         <div className="ml-auto pl-3">
           <button
+            type="button"
             onClick={() => {
               setIsVisible(false);
               setTimeout(onClose, 300);
             }}
+            aria-label="Dismiss notification"
             className="inline-flex text-gray-400 hover:text-gray-600 transition-colors duration-150"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

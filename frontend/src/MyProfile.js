@@ -71,7 +71,7 @@ export default function MyProfile({ userId: propUserId }) {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen font-bold text-[#e20000] animate-pulse tracking-widest text-sm">LOADING...</div>;
+  if (loading) return <div role="status" aria-live="polite" className="flex items-center justify-center min-h-screen font-bold text-[#e20000] animate-pulse tracking-widest text-sm">LOADING...</div>;
 
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 min-h-screen bg-[#f1f2f4]">
@@ -100,9 +100,9 @@ export default function MyProfile({ userId: propUserId }) {
                     )}
                 </div>
                 {editMode && (
-                    <label className="absolute bottom-1 right-1 bg-[#e20000] text-white rounded-full p-2 cursor-pointer shadow-md border-2 border-white transition-transform hover:scale-110">
-                        <Camera className="w-4 h-4" />
-                        <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                    <label aria-label="Upload profile photo" className="absolute bottom-1 right-1 bg-[#e20000] text-white rounded-full p-2 cursor-pointer shadow-md border-2 border-white transition-transform hover:scale-110">
+                        <Camera className="w-4 h-4" aria-hidden="true" />
+                        <input type="file" accept="image/*" aria-label="Upload profile photo" onChange={handlePhotoChange} className="hidden" />
                     </label>
                 )}
             </div>
@@ -112,7 +112,9 @@ export default function MyProfile({ userId: propUserId }) {
                 {editMode ? (
                     <input 
                         type="text" 
-                        name="fullName" 
+                        id="profile-full-name"
+                        name="fullName"
+                        aria-label="Full name"
                         value={form.fullName} 
                         onChange={handleChange} 
                         className="text-2xl font-bold text-gray-900 border-b border-gray-200 focus:border-[#e20000] outline-none bg-transparent text-center w-full max-w-xs mb-1" 
@@ -126,11 +128,12 @@ export default function MyProfile({ userId: propUserId }) {
             {/* Form Fields - Grid for better spacing */}
             <div className="w-full max-w-md grid grid-cols-1 gap-5 mb-10">
                 <div className="space-y-1.5 px-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Email Address</label>
+                    <label htmlFor="profile-email" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Email Address</label>
                     {editMode ? (
                         <input 
                             type="email" 
-                            name="email" 
+                            id="profile-email"
+                            name="email"
                             value={form.email} 
                             onChange={handleChange} 
                             className="w-full px-4 py-3 bg-[#f1f2f4] rounded-xl border border-gray-100 focus:border-[#e20000] outline-none font-semibold text-gray-900 text-sm shadow-inner transition-all"
@@ -143,11 +146,12 @@ export default function MyProfile({ userId: propUserId }) {
                 </div>
 
                 <div className="space-y-1.5 px-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Phone Number</label>
+                    <label htmlFor="profile-mobile" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Phone Number</label>
                     {editMode ? (
                         <input 
                             type="text" 
-                            name="mobileNo" 
+                            id="profile-mobile"
+                            name="mobileNo"
                             value={form.mobileNo} 
                             onChange={handleChange} 
                             className="w-full px-4 py-3 bg-[#f1f2f4] rounded-xl border border-gray-100 focus:border-[#e20000] outline-none font-semibold text-gray-900 text-sm shadow-inner transition-all"
@@ -166,13 +170,13 @@ export default function MyProfile({ userId: propUserId }) {
                     <div className="flex gap-3">
                         <button 
                             onClick={handleSave} 
-                            className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-blue-700 transition-colors text-sm"
+                            className="ui-btn ui-btn-primary flex-1"
                         >
                             Save
                         </button>
                         <button 
                             onClick={() => { setEditMode(false); setForm({...user}); }} 
-                            className="flex-1 bg-gray-400 text-white font-bold py-3 rounded-xl hover:bg-gray-500 transition-colors text-sm"
+                            className="ui-btn ui-btn-outline flex-1"
                         >
                             Cancel
                         </button>
@@ -180,13 +184,13 @@ export default function MyProfile({ userId: propUserId }) {
                 ) : (
                     <button 
                         onClick={() => setEditMode(true)} 
-                        className="w-full bg-[#fbbc05] text-[#713f12] font-bold py-3.5 rounded-xl transition-all shadow-sm hover:shadow-md active:scale-[0.98] text-sm uppercase tracking-wider"
+                        className="ui-btn ui-btn-secondary w-full py-3.5 text-sm uppercase tracking-wider"
                     >
                         Edit Profile
                     </button>
                 )}
             </div>
-            {error && <p className="mt-6 text-center text-[#e20000] text-xs font-bold px-4 py-2 bg-red-50 rounded-lg">{error}</p>}
+            {error && <p role="alert" className="mt-6 text-center text-[#e20000] text-xs font-bold px-4 py-2 bg-red-50 rounded-lg">{error}</p>}
         </div>
       </div>
     </div>

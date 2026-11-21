@@ -18,6 +18,8 @@ const sidebarLinks = [
   { label: "Complaints", icon: <MessageSquare className="w-5 h-5" /> },
 ];
 
+const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
 const getUserId = () => {
   const storedUserId = sessionStorage.getItem("userId");
   if (storedUserId) return storedUserId;
@@ -36,6 +38,8 @@ export default function RecipientDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [inventoryError, setInventoryError] = useState("");
   const [user, setUser] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [isEditing, setIsEditing] = useState(null);
@@ -74,10 +78,21 @@ export default function RecipientDashboard() {
     }
   };
 
+  const fetchInventory = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/inventory/summary");
+      setInventory(res.data?.inventory || []);
+      setInventoryError("");
+    } catch (err) {
+      console.error("Failed to fetch blood inventory", err);
+      setInventoryError("Unable to load current blood stock.");
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchRequests(), fetchUser()]);
+      await Promise.all([fetchRequests(), fetchUser(), fetchInventory()]);
       setLoading(false);
     };
     init();
@@ -153,7 +168,7 @@ export default function RecipientDashboard() {
   if (loading) return <div className="flex items-center justify-center h-screen font-bold text-[#e20000] animate-pulse">Loading Recipient Dashboard...</div>;
 
   const renderRequestBlood = () => (
-    <div className="p-10 max-w-6xl mx-auto">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-black text-gray-900 mb-2">Request Blood</h1>
@@ -165,20 +180,21 @@ export default function RecipientDashboard() {
             setFormData({ requestFor: 'self', bloodGroup: user?.bloodGroup || '', units: 1, reason: '' });
             setActivePage('Dashboard');
           }}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#e20000] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-200/20 hover:bg-red-600 transition"
+          className="ui-btn ui-btn-primary"
         >
           <Calendar className="w-5 h-5" /> Back to Dashboard
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 rounded-3xl border border-gray-100 bg-white p-10 shadow-lg">
+        <div className="lg:col-span-2 rounded-3xl border border-gray-100 bg-white p-5 sm:p-8 shadow-lg">
           <h2 className="text-2xl font-black text-gray-900 mb-6">Request Details</h2>
-          <form className="space-y-8">
+          <form className="space-y-8" onSubmit={handleSubmit}>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-900">Request For</label>
+                <label htmlFor="request-for" className="text-sm font-semibold text-gray-900">Request For</label>
                 <select
+                  id="request-for"
                   name="requestFor"
                   value={formData.requestFor}
                   onChange={handleInputChange}
@@ -189,8 +205,9 @@ export default function RecipientDashboard() {
                 </select>
               </div>
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-900">Blood Group</label>
+                <label htmlFor="request-blood-group" className="text-sm font-semibold text-gray-900">Blood Group</label>
                 <input
+                  id="request-blood-group"
                   name="bloodGroup"
                   value={formData.bloodGroup}
                   disabled={formData.requestFor === 'self'}
@@ -203,14 +220,16 @@ export default function RecipientDashboard() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-gray-900">Units Required</label>
+                <label htmlFor="request-units" className="text-sm font-semibold text-gray-900">Units Required</label>
                 <input
+                  id="request-units"
                   type="number"
                   name="units"
                   value={formData.units}
                   onChange={handleInputChange}
                   className="w-full rounded-3xl border border-gray-200 bg-gray-50 px-5 py-4 text-gray-700 font-semibold outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
                   min={1}
+                  required
                 />
               </div>
               <div className="space-y-3">
@@ -220,8 +239,9 @@ export default function RecipientDashboard() {
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-900">Additional Notes</label>
+              <label htmlFor="request-notes" className="text-sm font-semibold text-gray-900">Additional Notes</label>
               <textarea
+                id="request-notes"
                 name="reason"
                 rows={5}
                 value={formData.reason}
@@ -232,9 +252,8 @@ export default function RecipientDashboard() {
             </div>
 
             <button
-              type="button"
-              onClick={handleSubmit}
-              className="w-full rounded-3xl bg-[#e20000] px-6 py-4 text-lg font-bold text-white shadow-lg shadow-red-200/30 transition hover:bg-red-600"
+              type="submit"
+              className="ui-btn ui-btn-primary w-full py-4 text-lg"
             >
               {isEditing ? 'Update Request' : 'Submit Request'}
             </button>
@@ -261,14 +280,23 @@ export default function RecipientDashboard() {
 
           <div className="rounded-3xl border border-gray-100 bg-[#fff7f7] p-8 shadow-sm">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Available Blood Stock</h3>
-            <div className="space-y-4">
-              {['A+', 'B+', 'O+', 'AB+'].map((group) => (
-                <div key={group} className="flex items-center justify-between rounded-3xl bg-white px-5 py-4 shadow-sm">
-                  <span className="font-semibold text-gray-900">{group}</span>
-                  <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-700">Available</span>
-                </div>
-              ))}
-            </div>
+            {inventoryError ? (
+              <p role="alert" className="text-sm text-red-700">{inventoryError}</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {bloodGroupOptions.map((group) => {
+                  const units = inventory.find((item) => item.bloodGroup === group)?.availableUnits || 0;
+                  return (
+                    <div key={group} className="flex min-w-0 flex-col gap-1 rounded-xl bg-white px-3 py-3 shadow-sm">
+                      <span className="font-semibold text-gray-900">{group}</span>
+                      <span className={`text-xs font-bold ${units > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        {units > 0 ? `${units} units` : 'Out of stock'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -371,18 +399,19 @@ export default function RecipientDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f3f3f5] flex font-sans">
-      <aside className="w-64 bg-white/95 border-r border-gray-200 flex flex-col py-8 px-6 min-h-screen shadow-sm">
-        <div className="flex items-center gap-2 mb-10 px-2">
-          <Droplet className="text-[#e20000] fill-transparent stroke-2 h-7 w-7" />
-          <span className="text-2xl font-extrabold text-gray-900 tracking-tight">BloodBank Plus</span>
+    <div className="dashboard-shell">
+      <aside className="dashboard-sidebar py-8 px-6 shadow-sm">
+        <div className="dashboard-brand mb-10 px-2">
+          <Droplet className="dashboard-brand-icon" size={25} aria-hidden="true" />
+          <span>BloodBank Plus</span>
         </div>
-        <nav className="flex-1">
+        <nav className="flex-1" aria-label="Recipient navigation">
           <ul className="space-y-2">
             {sidebarLinks.map((link) => (
               <li key={link.label}>
                 <button
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-base transition-colors ${activePage === link.label ? 'bg-[#ffeaea] text-[#e20000]' : 'text-gray-700 hover:bg-gray-100'}`}
+                  aria-current={activePage === link.label ? 'page' : undefined}
+                  className={`dashboard-nav-item w-full flex items-center gap-3 px-4 py-3 font-semibold text-base ${activePage === link.label ? 'dashboard-nav-item-active' : ''}`}
                   onClick={() => setActivePage(link.label)}
                 >
                   {link.icon}
@@ -394,8 +423,8 @@ export default function RecipientDashboard() {
         </nav>
       </aside>
 
-      <main className="flex-1 overflow-x-hidden">
-        <header className="flex items-center justify-between px-10 py-6 border-b border-gray-200 bg-white/95 sticky top-0 z-20">
+      <main className="dashboard-main min-w-0 overflow-x-hidden">
+        <header className="dashboard-header">
           <h2 className="text-xl font-bold text-gray-900">{activePage}</h2>
           <button 
              onClick={() => { sessionStorage.clear(); window.location.href = '/'; }}

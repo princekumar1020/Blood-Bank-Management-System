@@ -6,7 +6,6 @@ import { useToast } from "./context/ToastContext";
 
 export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
   const [date, setDate] = useState("");
-  const [timeSlot, setTimeSlot] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -14,16 +13,6 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
   const [canBook, setCanBook] = useState(true);
   const [eligibilityMsg, setEligibilityMsg] = useState("");
   const { showToast } = useToast();
-
-  // Generate time slots from 9 AM to 5 PM (1-hour intervals)
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 9; hour <= 17; hour++) {
-      const timeStr = hour < 12 ? `${hour}:00 AM` : hour === 12 ? "12:00 PM" : `${hour - 12}:00 PM`;
-      slots.push(timeStr);
-    }
-    return slots;
-  };
 
   // Check eligibility on mount
   React.useEffect(() => {
@@ -80,18 +69,20 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
       setError(eligibilityMsg || "You are not eligible to book an appointment.");
       return;
     }
+    if (!bloodGroup) {
+      setError("Loading your blood group. Please wait a moment and try again.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
       await axios.post("http://localhost:5000/api/donor/appointment", {
         userId,
         date,
-        timeSlot,
         notes,
         bloodGroup
       });
       setDate("");
-      setTimeSlot("");
       setNotes("");
       if (onSuccess) onSuccess();
       showToast("Appointment scheduled successfully!", 'success');
@@ -113,11 +104,17 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
         <div className="text-red-600 font-semibold mb-2">{eligibilityMsg}</div>
       )}
       <div>
-        <label className="block font-bold text-red-600 dark:text-red-400 mb-1">Your Blood Group</label>
-        <input type="text" value={bloodGroup} readOnly className="w-full p-2 rounded border-2 border-red-400 dark:border-red-600 bg-red-50 dark:bg-gray-900 text-red-700 dark:text-red-300 font-bold cursor-not-allowed text-lg" />
+        <label htmlFor="appointment-blood-group" className="block font-bold text-red-600 dark:text-red-400 mb-1">Your Blood Group</label>
+        <input
+          id="appointment-blood-group"
+          type="text"
+          value={bloodGroup || "Loading..."}
+          readOnly
+          className="w-full p-2 rounded border-2 border-red-400 dark:border-red-600 bg-red-50 dark:bg-gray-900 text-red-700 dark:text-red-300 font-bold cursor-not-allowed text-lg"
+        />
       </div>
       <div>
-        <label className="block text-gray-700 dark:text-gray-300 mb-1">Date</label>
+        <label htmlFor="appointment-date" className="block text-gray-700 dark:text-gray-300 mb-1">Date</label>
         <div className="relative">
           <input
             type="date"
@@ -142,26 +139,11 @@ export default function ScheduleAppointment({ userId, bloodGroup, onSuccess }) {
         </div>
       </div>
       <div>
-        <label className="block text-gray-700 dark:text-gray-300 mb-1">Time Slot</label>
-        <select
-          value={timeSlot}
-          onChange={e => setTimeSlot(e.target.value)}
-          required
-          className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
-          disabled={!canBook}
-        >
-          <option value="">Select a time slot</option>
-          {generateTimeSlots().map(slot => (
-            <option key={slot} value={slot}>{slot}</option>
-          ))}
-        </select>
+        <label htmlFor="appointment-notes" className="block text-gray-700 dark:text-gray-300 mb-1">Additional Notes</label>
+        <textarea id="appointment-notes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any pre-existing conditions or notes?" className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-[80px]" disabled={!canBook} />
       </div>
-      <div>
-        <label className="block text-gray-700 dark:text-gray-300 mb-1">Additional Notes</label>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any pre-existing conditions or notes?" className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white min-h-[80px]" disabled={!canBook} />
-      </div>
-      {error && <div className="text-red-600 font-semibold">{error}</div>}
-      <button type="submit" disabled={loading || !canBook} className={`bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg shadow transition w-full mt-2 ${!canBook ? 'opacity-50 cursor-not-allowed' : ''}`}>{loading ? "Scheduling..." : "Schedule Appointment"}</button>
+      {error && <div className="text-red-600 font-semibold" role="alert">{error}</div>}
+      <button type="submit" disabled={loading || !canBook} className={`ui-btn ui-btn-primary w-full mt-2 ${!canBook ? 'opacity-50 cursor-not-allowed' : ''}`}>{loading ? "Scheduling..." : "Schedule Appointment"}</button>
     </form>
   );
 }

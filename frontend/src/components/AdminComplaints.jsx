@@ -217,7 +217,7 @@ const AdminComplaints = () => {
   );
 
   return (
-    <div className="flex-1 p-8 bg-gray-50 min-h-screen">
+    <div className="workspace-page">
       <div className="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm mb-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -228,6 +228,7 @@ const AdminComplaints = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-auto">
               <input
+                aria-label="Search complaints by user name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -287,7 +288,7 @@ const AdminComplaints = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="table-scroll overflow-x-auto">
               <table className="min-w-full text-left border-collapse">
                 <thead className="bg-gray-50">
                   <tr>
@@ -347,8 +348,8 @@ const AdminComplaints = () => {
       </div>
 
       {detailsOpen && selectedComplaint ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 px-4 py-8">
-          <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
+        <div className="modal-overlay">
+          <div role="dialog" aria-modal="true" aria-labelledby="complaint-dialog-title" className="modal-panel modal-panel-wide p-5 sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3">
@@ -359,11 +360,11 @@ const AdminComplaints = () => {
                     </span>
                   )}
                 </div>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900">{selectedComplaint.subject || selectedComplaint.title || 'No subject'}</h2>
+                <h2 id="complaint-dialog-title" className="mt-2 text-2xl font-bold text-slate-900">{selectedComplaint.subject || selectedComplaint.title || 'No subject'}</h2>
                 <p className="mt-2 text-sm text-gray-500">Submitted by {selectedComplaint.user?.fullName || selectedComplaint.user?.email || 'Unknown user'} ({selectedComplaint.user?.role || 'unknown'})</p>
               </div>
-              <button onClick={closeModal} className="rounded-full border border-gray-200 p-3 text-slate-600 transition hover:bg-gray-100">
-                <X size={18} />
+              <button type="button" aria-label="Close complaint details" onClick={closeModal} className="rounded-full border border-gray-200 p-3 text-slate-600 transition hover:bg-gray-100">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
@@ -427,8 +428,9 @@ const AdminComplaints = () => {
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Add Response</p>
+                    <label htmlFor="complaint-response" className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Add Response</label>
                     <textarea
+                      id="complaint-response"
                       value={responseText}
                       onChange={(e) => setResponseText(e.target.value)}
                       placeholder="Type your response here..."
@@ -436,7 +438,9 @@ const AdminComplaints = () => {
                       rows={4}
                     />
                     <div className="mt-3 flex flex-col gap-3">
+                      <label htmlFor="complaint-status" className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Response status</label>
                       <select
+                        id="complaint-status"
                         value={statusOption}
                         onChange={(e) => setStatusOption(e.target.value)}
                         className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm focus:border-red-500 focus:outline-none"
